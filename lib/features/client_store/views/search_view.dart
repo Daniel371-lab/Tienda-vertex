@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/router/niche_context.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
@@ -32,7 +33,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(storeControllerProvider.notifier).loadCategories();
       await ref.read(storeControllerProvider.notifier).applyNiche(
-            const NicheContextStub(),
+            const NicheContext(),
           );
     });
   }
@@ -162,7 +163,7 @@ class _NoResults extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off_rounded,
+              const Icon(Icons.search_off_rounded,
                   size: 56, color: AppColors.textMuted),
               const SizedBox(height: 16),
               Text(
@@ -173,9 +174,4 @@ class _NoResults extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// Stub para forzar carga del catálogo global al entrar a búsqueda.
-class NicheContextStub {
-  const NicheContextStub();
 }

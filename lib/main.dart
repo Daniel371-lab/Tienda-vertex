@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_strategy/url_strategy.dart';
 
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
@@ -12,13 +11,6 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Estrategia de URL:
-  //  · Web producción: PathUrlStrategy → tiendavertex.com/perfumes
-  //  · Web staging GH Pages: HashUrlStrategy → #/perfumes (evita 404)
-  //    Se activa al compilar con: --dart-define=USE_HASH_URL=true
-  const useHash = bool.fromEnvironment('USE_HASH_URL', defaultValue: false);
-  setUrlStrategy(useHash ? const HashUrlStrategy() : const PathUrlStrategy());
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -54,9 +46,6 @@ class TiendaVertexApp extends ConsumerWidget {
       themeMode: ThemeMode.light,
       routerConfig: router,
       builder: (context, child) {
-        // Edge-to-edge: SafeArea global con top/bottom true.
-        // Las vistas que necesiten full-bleed (como el GlassHeader)
-        // ya manejan su propio SafeArea interno.
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(
