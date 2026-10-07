@@ -8,7 +8,11 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../client_store/controllers/cart_controller.dart';
 
 class CartDrawer extends ConsumerWidget {
-  const CartDrawer({super.key});
+  const CartDrawer({super.key, this.onCheckout});
+
+  /// Callback que se ejecuta al tocar "Finalizar compra".
+  /// El padre es quien cierra este modal y abre el checkout.
+  final VoidCallback? onCheckout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +31,6 @@ class CartDrawer extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            // Handle visual
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Container(
@@ -66,24 +69,20 @@ class CartDrawer extends ConsumerWidget {
             const Divider(),
             Expanded(
               child: cart.isEmpty
-                  ? _EmptyCart()
+                  ? const _EmptyCart()
                   : ListView.separated(
                       controller: scrollController,
                       padding: const EdgeInsets.all(20),
                       itemCount: cart.items.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 16),
+                      separatorBuilder: (_, __) => const SizedBox(height: 16),
                       itemBuilder: (context, i) {
                         final item = cart.items[i];
                         return _CartLine(
                           item: item,
-                          onRemove: () => notifier.removeProduct(
-                            item.productId,
-                          ),
-                          onQtyChange: (q) => notifier.updateQuantity(
-                            item.productId,
-                            q,
-                          ),
+                          onRemove: () =>
+                              notifier.removeProduct(item.productId),
+                          onQtyChange: (q) =>
+                              notifier.updateQuantity(item.productId, q),
                         );
                       },
                     ),
@@ -116,7 +115,7 @@ class CartDrawer extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () => _openCheckout(context),
+                        onPressed: () => onCheckout?.call(),
                         child: const Text(AppStrings.checkout),
                       ),
                     ),
@@ -128,11 +127,6 @@ class CartDrawer extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _openCheckout(BuildContext context) {
-    // Se implementa en Fase 2 — de momento solo cierra.
-    Navigator.of(context).pop();
   }
 }
 
@@ -278,6 +272,8 @@ class _Row extends StatelessWidget {
 }
 
 class _EmptyCart extends StatelessWidget {
+  const _EmptyCart();
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -286,7 +282,7 @@ class _EmptyCart extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.shopping_bag_outlined,
+            const Icon(Icons.shopping_bag_outlined,
                 size: 64, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(

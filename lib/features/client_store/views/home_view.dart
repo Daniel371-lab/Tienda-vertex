@@ -8,6 +8,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../../cart/views/cart_drawer.dart';
+import '../../checkout/views/checkout_view.dart';
 import '../controllers/cart_controller.dart';
 import '../controllers/store_controller.dart';
 import '../widgets/drawer/smart_drawer.dart';
@@ -91,7 +92,21 @@ class _HomeViewState extends ConsumerState<HomeView> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const CartDrawer(),
+      builder: (cartContext) => CartDrawer(
+        onCheckout: () {
+          Navigator.of(cartContext).pop();
+          Future.delayed(const Duration(milliseconds: 150), () {
+            if (!mounted) return;
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => const CheckoutView(),
+            );
+          });
+        },
+      ),
     );
   }
 
@@ -277,9 +292,6 @@ class _EmptyState extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(storeControllerProvider);
     final errorMsg = state.error;
-    final debug = 'Cat: ${state.categories.length} · '
-        'Prod: ${state.products.length} · '
-        'Err: ${errorMsg ?? "ninguno"}';
 
     return Center(
       child: Padding(
@@ -287,37 +299,20 @@ class _EmptyState extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.inventory_2_outlined,
               size: 56,
-              color: AppColors.textMuted,
+              color: errorMsg != null
+                  ? AppColors.danger
+                  : AppColors.textMuted,
             ),
             const SizedBox(height: 16),
             Text(
               errorMsg ?? AppStrings.noProducts,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: errorMsg != null
-                        ? AppColors.danger
-                        : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                debug,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                  fontFamily: 'monospace',
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             TextButton(

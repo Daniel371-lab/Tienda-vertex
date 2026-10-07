@@ -6,10 +6,10 @@ import '../../../app/constants/app_strings.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/phone_validator.dart';
 import '../../../models/paraguay_locations.dart';
+import '../../../services/firebase/firebase_providers.dart';
+import '../../client_store/controllers/cart_controller.dart';
 import '../controllers/checkout_controller.dart';
 
-/// Formulario de datos del cliente para el checkout.
-/// Guest checkout: sin registro, sin contraseña, sin email.
 class CheckoutForm extends ConsumerStatefulWidget {
   const CheckoutForm({super.key});
 
@@ -22,6 +22,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _couponCtrl;
+  bool _isValidatingCoupon = false;
 
   @override
   void initState() {
@@ -53,9 +54,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Honeypot invisible — los bots lo llenan, los humanos no.
-        _HoneypotField(),
-
         _Field(
           label: AppStrings.fieldFullName,
           child: TextField(
@@ -68,7 +66,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
-
         _Field(
           label: AppStrings.fieldPhone,
           child: TextField(
@@ -86,7 +83,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
-
         _Field(
           label: AppStrings.fieldDepartment,
           child: DropdownButtonFormField<String>(
@@ -102,7 +98,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
-
         _Field(
           label: AppStrings.fieldCity,
           child: DropdownButtonFormField<String>(
@@ -120,7 +115,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
-
         _Field(
           label: AppStrings.fieldAddress,
           child: TextField(
@@ -133,7 +127,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
-
         _Field(
           label: AppStrings.fieldCoupon,
           child: Row(
@@ -143,11 +136,11 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
                 child: TextField(
                   controller: _couponCtrl,
                   textCapitalization: TextCapitalization.characters,
+                  enabled: !state.hasCoupon,
                   onChanged: ctrl.setCouponCode,
                   decoration: const InputDecoration(
                     hintText: 'VERTEX10',
-                    prefixIcon:
-                        Icon(Icons.local_offer_outlined, size: 20),
+                    prefixIcon: Icon(Icons.local_offer_outlined, size: 20),
                   ),
                 ),
               ),
@@ -160,19 +153,27 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
                           ctrl.removeCoupon();
                           _couponCtrl.clear();
                         }
-                      : () => _applyCoupon(),
-                  child: Text(
-                    state.hasCoupon ? 'Quitar' : AppStrings.applyCoupon,
-                  ),
+                      : (_isValidatingCoupon ? null : _applyCoupon),
+                  child: _isValidatingCoupon
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          state.hasCoupon ? 'Quitar' : AppStrings.applyCoupon,
+                        ),
                 ),
               ),
             ],
           ),
         ),
-
         if (state.couponError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 4, left: 4),
             child: Text(
               state.couponError!,
               style: const TextStyle(
@@ -181,10 +182,9 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
               ),
             ),
           ),
-
         if (state.hasCoupon)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 4, left: 4),
             child: Row(
               children: [
                 const Icon(Icons.check_circle_rounded,
@@ -206,14 +206,38 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   }
 
   Future<void> _applyCoupon() async {
-    // Stub — la lógica real de validación se implementa en el Mensaje 2.
     final ctrl = ref.read(checkoutControllerProvider.notifier);
-    final code = _couponCtrl.text.trim();
+    final code = _couponCtrl.text.trim().toUpperCase();
     if (code.isEmpty) return;
 
-    // Placeholder: solo aplicamos visualmente. La validación real
-    // con Firestore se agrega en el siguiente mensaje.
-    ctrl.applyCoupon(code: code.toUpperCase(), discountAmount: 0);
+    setState(() => _isValidatingCoupon = true);
+
+    try {
+      final fs = ref.read(firestoreServiceProvider);
+      final cart = ref.read(cartControllerProvider);
+
+      final coupon = await fs.findCouponByCode(code);
+      if (coupon == null) {
+        ctrl.rejectCoupon(AppStrings.couponInvalid);
+        return;
+      }
+      if (!coupon.isUsable) {
+        ctrl.rejectCoupon(AppStrings.couponInvalid);
+        return;
+      }
+      final discount = coupon.calculateDiscount(cart.subtotal);
+      if (discount <= 0) {
+        ctrl.rejectCoupon(
+          'El cupón requiere un mínimo de compra mayor.',
+        );
+        return;
+      }
+      ctrl.applyCoupon(code: coupon.code, discountAmount: discount);
+    } catch (_) {
+      ctrl.rejectCoupon('Error al validar el cupón. Reintentá.');
+    } finally {
+      if (mounted) setState(() => _isValidatingCoupon = false);
+    }
   }
 }
 
@@ -241,43 +265,6 @@ class _Field extends StatelessWidget {
           ),
           child,
         ],
-      ),
-    );
-  }
-}
-
-/// Campo invisible que solo los bots llenan. Si tiene contenido, se bloquea.
-class _HoneypotField extends StatefulWidget {
-  @override
-  State<_HoneypotField> createState() => _HoneypotFieldState();
-}
-
-class _HoneypotFieldState extends State<_HoneypotField> {
-  final _ctrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Fuera de pantalla, inaccesible visualmente, pero presente en el DOM.
-    return SizedBox(
-      height: 0,
-      child: Opacity(
-        opacity: 0,
-        child: IgnorePointer(
-          child: TextField(
-            controller: _ctrl,
-            autofocus: false,
-            decoration: const InputDecoration(
-              labelText: 'Website',
-              border: InputBorder.none,
-            ),
-          ),
-        ),
       ),
     );
   }
