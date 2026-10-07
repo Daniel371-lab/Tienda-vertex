@@ -8,12 +8,6 @@ import '../../models/order_model.dart';
 import '../../models/product_model.dart';
 import '../../models/settings_model.dart';
 
-/// Capa única de acceso a Firestore.
-///
-/// Optimizada para Spark:
-///   · Paginación obligatoria en listados.
-///   · Sin listeners persistentes — se usan Futures para catálogo.
-///   · Búsquedas client-side sobre datos ya cargados.
 class FirestoreService {
   FirestoreService(this._db);
   final FirebaseFirestore _db;
@@ -24,8 +18,6 @@ class FirestoreService {
   // CATEGORÍAS
   // ─────────────────────────────────────────────────────────────
 
-  /// Lee todas las categorías activas ordenadas por `orderIndex`.
-  /// Se cachea en el controller — no se debe llamar en cada build.
   Future<List<Category>> fetchCategories({bool includeInactive = false}) async {
     Query query = _db.collection(ApiConstants.colCategories);
     if (!includeInactive) {
@@ -34,12 +26,9 @@ class FirestoreService {
     query = query.orderBy('orderIndex');
 
     final snap = await query.get();
-    return snap.docs
-        .map((doc) => Category.fromFirestore(doc))
-        .toList();
+    return snap.docs.map((doc) => Category.fromFirestore(doc)).toList();
   }
 
-  /// Busca una categoría por su slug.
   Future<Category?> findCategoryBySlug(String slug) async {
     final snap = await _db
         .collection(ApiConstants.colCategories)
@@ -50,7 +39,6 @@ class FirestoreService {
     return Category.fromFirestore(snap.docs.first);
   }
 
-  /// Busca una categoría por su ID.
   Future<Category?> findCategoryById(String id) async {
     final doc = await _db.collection(ApiConstants.colCategories).doc(id).get();
     if (!doc.exists) return null;
@@ -61,8 +49,6 @@ class FirestoreService {
   // PRODUCTOS
   // ─────────────────────────────────────────────────────────────
 
-  /// Productos por categoría (y opcionalmente subcategoría).
-  /// Paginado para no agotar el límite de Spark.
   Future<ProductsPage> fetchProducts({
     required String categoryId,
     String? subcategoryId,
@@ -78,63 +64,77 @@ class FirestoreService {
       query = query.where('subcategoryId', isEqualTo: subcategoryId);
     }
 
-    query = query.orderBy('createdAt', descending: true);
-
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
 
     final snap = await query.limit(limit).get();
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+
+    // Orden en cliente — evita índices compuestos de Firestore.
+    products.sort((a, b) {
+      final aDate = a.createdAt ?? DateTime(1970);
+      final bDate = b.createdAt ?? DateTime(1970);
+      return bDate.compareTo(aDate);
+    });
+
     return ProductsPage(
-      products: snap.docs.map((d) => Product.fromFirestore(d)).toList(),
+      products: products,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
       hasMore: snap.docs.length == limit,
     );
   }
 
-  /// Todos los productos activos (vista global `/`).
   Future<ProductsPage> fetchAllProducts({
     DocumentSnapshot? startAfter,
     int limit = pageSize,
   }) async {
     Query query = _db
         .collection(ApiConstants.colProducts)
-        .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true);
+        .where('isActive', isEqualTo: true);
 
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
 
     final snap = await query.limit(limit).get();
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+
+    products.sort((a, b) {
+      final aDate = a.createdAt ?? DateTime(1970);
+      final bDate = b.createdAt ?? DateTime(1970);
+      return bDate.compareTo(aDate);
+    });
+
     return ProductsPage(
-      products: snap.docs.map((d) => Product.fromFirestore(d)).toList(),
+      products: products,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
       hasMore: snap.docs.length == limit,
     );
   }
 
-  /// Productos destacados (para portada global).
   Future<List<Product>> fetchFeatured({int limit = 12}) async {
     final snap = await _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
         .where('isFeatured', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
         .limit(limit)
         .get();
-    return snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    products.sort((a, b) {
+      final aDate = a.createdAt ?? DateTime(1970);
+      final bDate = b.createdAt ?? DateTime(1970);
+      return bDate.compareTo(aDate);
+    });
+    return products;
   }
 
-  /// Obtiene un producto por ID.
   Future<Product?> findProductById(String id) async {
     final doc = await _db.collection(ApiConstants.colProducts).doc(id).get();
     if (!doc.exists) return null;
     return Product.fromFirestore(doc);
   }
 
-  /// Obtiene varios productos por IDs (para validar carrito).
-  /// Firestore limita `whereIn` a 10 elementos por query.
   Future<List<Product>> findProductsByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
     final chunks = <List<String>>[];
@@ -168,7 +168,6 @@ class FirestoreService {
     return Coupon.fromFirestore(snap.docs.first);
   }
 
-  /// Incrementa atómicamente el contador de uso del cupón.
   Future<void> incrementCouponUsage(String couponId) async {
     await _db.collection(ApiConstants.colCoupons).doc(couponId).update({
       'currentUses': FieldValue.increment(1),
@@ -179,13 +178,10 @@ class FirestoreService {
   // PEDIDOS
   // ─────────────────────────────────────────────────────────────
 
-  /// Crea un pedido y devuelve el ID generado.
   Future<String> createOrder(Order order) async {
     final ref = _db.collection(ApiConstants.colOrders).doc();
     final data = order.toMap();
-    // El ID se inyecta como campo para facilitar queries desde el cliente.
     data['id'] = ref.id;
-    // Estado inicial fijo por seguridad del flujo.
     data['status'] = OrderStatus.pendienteConfirmacion.value;
     await ref.set(data);
     return ref.id;
@@ -197,7 +193,6 @@ class FirestoreService {
     return Order.fromFirestore(doc);
   }
 
-  /// Lista pedidos filtrados por estado (cPanel).
   Future<List<Order>> fetchOrders({
     OrderStatus? status,
     int limit = 50,
@@ -207,11 +202,16 @@ class FirestoreService {
     if (status != null) {
       query = query.where('status', isEqualTo: status.value);
     }
-    query = query.orderBy('createdAt', descending: true);
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 
     final snap = await query.limit(limit).get();
-    return snap.docs.map((d) => Order.fromFirestore(d)).toList();
+    final orders = snap.docs.map((d) => Order.fromFirestore(d)).toList();
+    orders.sort((a, b) {
+      final aDate = a.createdAt ?? DateTime(1970);
+      final bDate = b.createdAt ?? DateTime(1970);
+      return bDate.compareTo(aDate);
+    });
+    return orders;
   }
 
   Future<void> updateOrderStatus(String id, OrderStatus status) async {
@@ -225,8 +225,6 @@ class FirestoreService {
   // BLACKLIST
   // ─────────────────────────────────────────────────────────────
 
-  /// Verifica si un teléfono está en la lista negra.
-  /// Se usa ID determinístico para lectura directa (1 lectura, no query).
   Future<bool> isPhoneBlacklisted(String phone) async {
     final id = BlacklistEntry.buildId(phone);
     final doc = await _db.collection(ApiConstants.colBlacklist).doc(id).get();
@@ -246,7 +244,6 @@ class FirestoreService {
   }
 }
 
-/// Resultado paginado de productos.
 class ProductsPage {
   const ProductsPage({
     required this.products,
