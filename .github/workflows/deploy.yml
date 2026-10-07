@@ -31,18 +31,11 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Setup Firebase config
-        run: |
-          # firebase_options.dart debe estar versionado o generarse con secretos.
-          # Opción simple: versionarlo (las claves web/Android públicas no son secretas).
-          echo "OK — firebase_options.dart debe existir en lib/"
-
       - name: Build Web
         run: |
           flutter build web --release \
-            --base-href "/tienda_vertex/" \
-            --dart-define=BASE_HREF=/tienda_vertex/ \
-            --dart-define=USE_HASH_URL=false \
+            --base-href "/Tienda-vertex/" \
+            --dart-define=BASE_HREF=/Tienda-vertex/ \
             --tree-shake-icons
 
       - name: Copy 404.html for SPA fallback

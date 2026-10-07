@@ -56,8 +56,13 @@ class SmartDrawer extends ConsumerWidget {
                         const VertexLogo(),
                         const Spacer(),
                         IconButton(
-                          onPressed: () =>
-                              onNavigate?.call() ?? Navigator.pop(context),
+                          onPressed: () {
+                            if (onNavigate != null) {
+                              onNavigate!();
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
                           icon: const Icon(Icons.close_rounded),
                         ),
                       ],
