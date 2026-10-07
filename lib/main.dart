@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'firebase_options.dart';
+import 'services/firebase/firebase_providers.dart';
+import 'services/seed/seed_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,10 +18,13 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Analytics en modo lazy: no bloquea el arranque.
+  // Carga datos de prueba la primera vez (solo si Firestore está vacío).
+  final container = ProviderContainer();
+  await SeedService(container.read(firestoreInstanceProvider)).runIfNeeded();
+  container.dispose();
+
   FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
-  // Modo Edge-to-Edge (móvil) con barras transparentes.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,

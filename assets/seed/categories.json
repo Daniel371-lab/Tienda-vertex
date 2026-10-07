@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cat_perfumes",
+    "name": "Perfumería",
+    "slug": "perfumes",
+    "icon": "perfume_icon",
+    "orderIndex": 1,
+    "isActive": true,
+    "subcategories": [
+      { "id": "sub_arabes", "name": "Árabes", "slug": "arabes", "orderIndex": 1 },
+      { "id": "sub_masculinos", "name": "Masculino", "slug": "masculinos", "orderIndex": 2 },
+      { "id": "sub_femeninos", "name": "Femenino", "slug": "femeninos", "orderIndex": 3 },
+      { "id": "sub_testers", "name": "Testers", "slug": "testers", "orderIndex": 4 },
+      { "id": "sub_sets", "name": "Sets y Promociones", "slug": "sets", "orderIndex": 5 }
+    ]
+  },
+  {
+    "id": "cat_relojes",
+    "name": "Relojería",
+    "slug": "relojes",
+    "icon": "watch_icon",
+    "orderIndex": 2,
+    "isActive": true,
+    "subcategories": [
+      { "id": "sub_deportivos", "name": "Deportivos", "slug": "deportivos", "orderIndex": 1 },
+      { "id": "sub_clasicos", "name": "Clásicos", "slug": "clasicos", "orderIndex": 2 },
+      { "id": "sub_smartwatches", "name": "Smartwatches", "slug": "smartwatches", "orderIndex": 3 }
+    ]
+  },
+  {
+    "id": "cat_joyeria",
+    "name": "Joyería",
+    "slug": "joyeria",
+    "icon": "jewelry_icon",
+    "orderIndex": 3,
+    "isActive": true,
+    "subcategories": [
+      { "id": "sub_anillos", "name": "Anillos", "slug": "anillos", "orderIndex": 1 },
+      { "id": "sub_cadenas", "name": "Cadenas", "slug": "cadenas", "orderIndex": 2 },
+      { "id": "sub_aretes", "name": "Aretes", "slug": "aretes", "orderIndex": 3 },
+      { "id": "sub_pulseras", "name": "Pulseras", "slug": "pulseras", "orderIndex": 4 }
+    ]
+  },
+  {
+    "id": "cat_electronica",
+    "name": "Electrónica",
+    "slug": "electronica",
+    "icon": "electronics_icon",
+    "orderIndex": 4,
+    "isActive": true,
+    "subcategories": [
+      { "id": "sub_audio", "name": "Audio", "slug": "audio", "orderIndex": 1 },
+      { "id": "sub_accesorios", "name": "Accesorios", "slug": "accesorios", "orderIndex": 2 },
+      { "id": "sub_cargadores", "name": "Cargadores", "slug": "cargadores", "orderIndex": 3 }
+    ]
+  }
+]

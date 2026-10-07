@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_strings.dart';
 import '../../../app/router/niche_context.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../core/utils/currency_formatter.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../../cart/views/cart_drawer.dart';
@@ -33,6 +32,7 @@ class HomeView extends ConsumerStatefulWidget {
 
 class _HomeViewState extends ConsumerState<HomeView> {
   final _scrollController = ScrollController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -54,7 +54,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
   @override
   void didUpdateWidget(HomeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Si cambió la ruta, reaplicar el contexto de nicho.
     if (oldWidget.categorySlug != widget.categorySlug ||
         oldWidget.subcategorySlug != widget.subcategorySlug) {
       ref.read(storeControllerProvider.notifier).applyNiche(
@@ -82,8 +81,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   void _openDrawer() {
     final width = MediaQuery.sizeOf(context).width;
-    if (width >= 1024) return; // persistente, no overlay
-    Scaffold.of(context).openDrawer();
+    if (width >= 1024) return;
+    _scaffoldKey.currentState?.openDrawer();
   }
 
   void _openCart() {
@@ -122,14 +121,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final state = ref.watch(storeControllerProvider);
 
     return Scaffold(
-      // En desktop, drawer persistente fijo a la izquierda.
+      key: _scaffoldKey,
       drawer: isWide
           ? null
           : Drawer(
               width: 300,
               backgroundColor: AppColors.surface,
               child: SmartDrawer(
-                onNavigate: () => Navigator.of(context).pop(),
+                onNavigate: () => _scaffoldKey.currentState?.closeDrawer(),
               ),
             ),
       body: Row(
@@ -174,7 +173,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       ),
                     ),
 
-                    // Título del nicho o global
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -186,14 +184,17 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       ),
                     ),
 
-                    // Chips de subcategorías
                     const SliverToBoxAdapter(
                       child: SubcategoryChips(),
                     ),
 
-                    // Grid o estado vacío
                     if (state.isLoadingProducts && state.products.isEmpty)
-                      ..._buildShimmer()
+                      ProductGrid(
+                        products: const [],
+                        isLoading: true,
+                        onTap: (_) {},
+                        onAddToCart: (_) {},
+                      )
                     else if (!state.hasProducts && !state.isLoadingProducts)
                       SliverFillRemaining(
                         hasScrollBody: false,
@@ -216,7 +217,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onAddToCart: _addToCart,
                       ),
 
-                    // Indicador de carga al paginar
                     if (state.isLoadingMore)
                       const SliverToBoxAdapter(
                         child: Padding(
@@ -233,7 +233,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
 
-                    // Footer
                     const SliverToBoxAdapter(child: StoreFooter()),
                   ],
                 ),
@@ -245,19 +244,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  List<SliverChildDelegate> _dummy() => [];
-
-  List<Widget> _buildShimmer() {
-    return [
-      ProductGrid(
-        products: const [],
-        isLoading: true,
-        onTap: (_) {},
-        onAddToCart: (_) {},
-      ),
-    ];
-  }
-
   String _titleFor(String? categoryName) {
     if (categoryName == null || categoryName.isEmpty) {
       return AppStrings.allProducts;
@@ -266,7 +252,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 
   void _goToHome() {
-    // Limpia filtros pero mantiene el nicho activo si estamos dentro.
     final notifier = ref.read(storeControllerProvider.notifier);
     notifier.selectSubcategory(null);
     if (widget.categorySlug != null) {
@@ -274,7 +259,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
     } else {
       context.go('/');
     }
-    // Scroll al top
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -297,7 +281,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.inventory_2_outlined,
               size: 56,
               color: AppColors.textMuted,
