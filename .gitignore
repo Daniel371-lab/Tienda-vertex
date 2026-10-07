@@ -1,0 +1,44 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+
+# Firebase — SÍ versionamos firebase_options.dart
+# porque las claves públicas web/android no son secretas.
+# Las verdaderas API keys (Dropi, etc.) viven en Firestore `settings`.
+# NO versionamos archivos con credenciales admin:
+**/service-account-*.json
+.firebase/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Web
+web/favicon.png.bak
+
+# macOS / Windows / Linux build artifacts
+macos/Pods/
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+
+# Env
+.env
+*.env.local
+
+# Logs
+*.log

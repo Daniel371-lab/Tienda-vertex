@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Setup Firebase config
+        run: |
+          # firebase_options.dart debe estar versionado o generarse con secretos.
+          # Opción simple: versionarlo (las claves web/Android públicas no son secretas).
+          echo "OK — firebase_options.dart debe existir en lib/"
+
+      - name: Build Web
+        run: |
+          flutter build web --release \
+            --base-href "/tienda_vertex/" \
+            --dart-define=BASE_HREF=/tienda_vertex/ \
+            --dart-define=USE_HASH_URL=false \
+            --tree-shake-icons
+
+      - name: Copy 404.html for SPA fallback
+        run: cp build/web/index.html build/web/404.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
