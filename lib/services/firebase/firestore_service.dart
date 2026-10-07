@@ -14,19 +14,17 @@ class FirestoreService {
 
   static const int pageSize = 24;
 
-  // ─────────────────────────────────────────────────────────────
-  // CATEGORÍAS
-  // ─────────────────────────────────────────────────────────────
+  // ── CATEGORÍAS ────────────────────────────────────────────────
 
   Future<List<Category>> fetchCategories({bool includeInactive = false}) async {
     Query query = _db.collection(ApiConstants.colCategories);
     if (!includeInactive) {
       query = query.where('isActive', isEqualTo: true);
     }
-    query = query.orderBy('orderIndex');
-
     final snap = await query.get();
-    return snap.docs.map((doc) => Category.fromFirestore(doc)).toList();
+    final list = snap.docs.map((doc) => Category.fromFirestore(doc)).toList();
+    list.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    return list;
   }
 
   Future<Category?> findCategoryBySlug(String slug) async {
@@ -45,9 +43,7 @@ class FirestoreService {
     return Category.fromFirestore(doc);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PRODUCTOS
-  // ─────────────────────────────────────────────────────────────
+  // ── PRODUCTOS ─────────────────────────────────────────────────
 
   Future<ProductsPage> fetchProducts({
     required String categoryId,
@@ -70,8 +66,6 @@ class FirestoreService {
 
     final snap = await query.limit(limit).get();
     final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
-
-    // Orden en cliente — evita índices compuestos de Firestore.
     products.sort((a, b) {
       final aDate = a.createdAt ?? DateTime(1970);
       final bDate = b.createdAt ?? DateTime(1970);
@@ -99,7 +93,6 @@ class FirestoreService {
 
     final snap = await query.limit(limit).get();
     final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
-
     products.sort((a, b) {
       final aDate = a.createdAt ?? DateTime(1970);
       final bDate = b.createdAt ?? DateTime(1970);
@@ -152,9 +145,7 @@ class FirestoreService {
     return results;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // CUPONES
-  // ─────────────────────────────────────────────────────────────
+  // ── CUPONES ───────────────────────────────────────────────────
 
   Future<Coupon?> findCouponByCode(String code) async {
     final normalized = code.trim().toUpperCase();
@@ -174,9 +165,7 @@ class FirestoreService {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PEDIDOS
-  // ─────────────────────────────────────────────────────────────
+  // ── PEDIDOS ───────────────────────────────────────────────────
 
   Future<String> createOrder(Order order) async {
     final ref = _db.collection(ApiConstants.colOrders).doc();
@@ -221,9 +210,7 @@ class FirestoreService {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // BLACKLIST
-  // ─────────────────────────────────────────────────────────────
+  // ── BLACKLIST ─────────────────────────────────────────────────
 
   Future<bool> isPhoneBlacklisted(String phone) async {
     final id = BlacklistEntry.buildId(phone);
@@ -231,9 +218,7 @@ class FirestoreService {
     return doc.exists;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // SETTINGS
-  // ─────────────────────────────────────────────────────────────
+  // ── SETTINGS ──────────────────────────────────────────────────
 
   Future<StoreSettings> fetchSettings() async {
     final doc = await _db

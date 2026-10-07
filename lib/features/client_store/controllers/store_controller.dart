@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' show DocumentSnapshot;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,12 +5,8 @@ import '../../../app/router/niche_context.dart';
 import '../../../models/category_model.dart';
 import '../../../models/product_model.dart';
 import '../../../services/analytics/analytics_service.dart';
-import '../../../services/firebase/firestore_service.dart';
 import '../../../services/firebase/firebase_providers.dart';
-
-// ─────────────────────────────────────────────────────────────
-// Estado del catálogo
-// ─────────────────────────────────────────────────────────────
+import '../../../services/firebase/firestore_service.dart';
 
 class StoreState {
   const StoreState({
@@ -32,10 +27,7 @@ class StoreState {
   final List<Product> products;
   final Category? activeCategory;
   final Subcategory? activeSubcategory;
-
-  /// Filtro client-side de chips: null = "Todos".
   final String? selectedSubcategoryId;
-
   final DocumentSnapshot? lastDoc;
   final bool hasMore;
   final bool isLoadingCategories;
@@ -81,7 +73,6 @@ class StoreState {
     );
   }
 
-  /// Productos filtrados en memoria por subcategoría seleccionada.
   List<Product> get visibleProducts {
     if (selectedSubcategoryId == null) return products;
     return products
@@ -91,10 +82,6 @@ class StoreState {
 
   bool get hasProducts => visibleProducts.isNotEmpty;
 }
-
-// ─────────────────────────────────────────────────────────────
-// Controller
-// ─────────────────────────────────────────────────────────────
 
 class StoreController extends StateNotifier<StoreState> {
   StoreController({
@@ -107,42 +94,32 @@ class StoreController extends StateNotifier<StoreState> {
   final FirestoreService _fs;
   final AnalyticsService _analytics;
 
-  /// Carga inicial de categorías. Se ejecuta una sola vez por sesión.
   Future<void> loadCategories() async {
     if (state.categories.isNotEmpty || state.isLoadingCategories) return;
     state = state.copyWith(isLoadingCategories: true, clearError: true);
     try {
       final cats = await _fs.fetchCategories();
-      state = state.copyWith(
-        categories: cats,
-        isLoadingCategories: false,
-      );
+      state = state.copyWith(categories: cats, isLoadingCategories: false);
     } catch (e) {
       state = state.copyWith(
         isLoadingCategories: false,
-        error: 'No pudimos cargar las categorías.',
+        error: 'ERROR CATEGORÍAS: $e',
       );
     }
   }
 
-  /// Aplica un nuevo contexto de nicho derivado de la URL.
-  /// Resetea selecciones de subcategoría si cambia la categoría.
   Future<void> applyNiche(NicheContext niche) async {
-    // Sin categoría = vista global
     if (niche.categorySlug == null) {
       await _loadGlobal();
       return;
     }
 
-    // Buscar la categoría por slug
     final category = await _resolveCategory(niche.categorySlug!);
     if (category == null) {
-      // Slug inválido → degradar a global
       await _loadGlobal();
       return;
     }
 
-    // Determinar subcategoría desde la URL (si existe)
     Subcategory? sub;
     if (niche.subcategorySlug != null) {
       try {
@@ -167,7 +144,6 @@ class StoreController extends StateNotifier<StoreState> {
     await _loadProductsForCategory(category.id, sub?.id);
   }
 
-  /// Cambio de chip de subcategoría (filtro en memoria, sin recarga).
   void selectSubcategory(String? subcategoryId) {
     if (subcategoryId == null) {
       state = state.copyWith(
@@ -185,7 +161,6 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  /// Paginación: carga la siguiente página del listado activo.
   Future<void> loadMore() async {
     if (!state.hasMore || state.isLoadingMore || state.lastDoc == null) return;
     state = state.copyWith(isLoadingMore: true);
@@ -203,24 +178,19 @@ class StoreController extends StateNotifier<StoreState> {
         hasMore: page.hasMore,
         isLoadingMore: false,
       );
-    } catch (_) {
-      state = state.copyWith(isLoadingMore: false);
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: 'ERROR LOAD MORE: $e',
+      );
     }
   }
 
-  // ───────────────────────────────────────────────────────────
-  // Internos
-  // ───────────────────────────────────────────────────────────
-
   Future<Category?> _resolveCategory(String slug) async {
-    // Primero buscar en caché local
     final cached = state.categories.where((c) => c.slug == slug).firstOrNull;
     if (cached != null) return cached;
-
-    // Si no está, consultar Firestore
     final fetched = await _fs.findCategoryBySlug(slug);
     if (fetched != null) {
-      // Incorporar a la lista de categorías para reusar
       state = state.copyWith(categories: [...state.categories, fetched]);
     }
     return fetched;
@@ -247,14 +217,10 @@ class StoreController extends StateNotifier<StoreState> {
         isLoadingProducts: false,
       );
       await _analytics.logHomeViewed();
-      await _analytics.logItemListViewed(
-        categorySlug: 'global',
-        itemCount: page.products.length,
-      );
-    } catch (_) {
+    } catch (e) {
       state = state.copyWith(
         isLoadingProducts: false,
-        error: 'No pudimos cargar los productos.',
+        error: 'ERROR PRODUCTOS: $e',
       );
     }
   }
@@ -274,23 +240,14 @@ class StoreController extends StateNotifier<StoreState> {
         hasMore: page.hasMore,
         isLoadingProducts: false,
       );
-      await _analytics.logItemListViewed(
-        categorySlug: state.activeCategory?.slug ?? '',
-        subcategorySlug: state.activeSubcategory?.slug,
-        itemCount: page.products.length,
-      );
-    } catch (_) {
+    } catch (e) {
       state = state.copyWith(
         isLoadingProducts: false,
-        error: 'No pudimos cargar los productos.',
+        error: 'ERROR PRODUCTOS: $e',
       );
     }
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Provider
-// ─────────────────────────────────────────────────────────────
 
 final storeControllerProvider =
     StateNotifierProvider<StoreController, StoreState>((ref) {

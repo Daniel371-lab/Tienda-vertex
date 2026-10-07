@@ -269,15 +269,21 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends ConsumerWidget {
   const _EmptyState({required this.onRetry});
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(storeControllerProvider);
+    final errorMsg = state.error;
+    final debug = 'Cat: ${state.categories.length} · '
+        'Prod: ${state.products.length} · '
+        'Err: ${errorMsg ?? "ninguno"}';
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -288,12 +294,32 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              AppStrings.noProducts,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
+              errorMsg ?? AppStrings.noProducts,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: errorMsg != null
+                        ? AppColors.danger
+                        : AppColors.textSecondary,
                   ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                debug,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextButton(
               onPressed: onRetry,
               child: const Text('Reintentar'),
