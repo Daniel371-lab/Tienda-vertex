@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Estado del formulario de checkout.
 class CheckoutState {
   const CheckoutState({
     this.fullName = '',
@@ -12,6 +11,8 @@ class CheckoutState {
     this.appliedCouponCode,
     this.discountAmount = 0,
     this.couponError,
+    this.holderName = '',
+    this.sourceBank,
     this.isSubmitting = false,
     this.error,
   });
@@ -25,6 +26,8 @@ class CheckoutState {
   final String? appliedCouponCode;
   final int discountAmount;
   final String? couponError;
+  final String holderName;
+  final String? sourceBank;
   final bool isSubmitting;
   final String? error;
 
@@ -40,6 +43,8 @@ class CheckoutState {
     String? appliedCouponCode,
     int? discountAmount,
     String? couponError,
+    String? holderName,
+    String? sourceBank,
     bool? isSubmitting,
     String? error,
     bool clearCoupon = false,
@@ -53,13 +58,14 @@ class CheckoutState {
       city: city ?? this.city,
       address: address ?? this.address,
       couponCode: couponCode ?? this.couponCode,
-      appliedCouponCode: clearCoupon
-          ? null
-          : (appliedCouponCode ?? this.appliedCouponCode),
+      appliedCouponCode:
+          clearCoupon ? null : (appliedCouponCode ?? this.appliedCouponCode),
       discountAmount:
           clearCoupon ? 0 : (discountAmount ?? this.discountAmount),
       couponError:
           clearCouponError ? null : (couponError ?? this.couponError),
+      holderName: holderName ?? this.holderName,
+      sourceBank: sourceBank ?? this.sourceBank,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       error: clearError ? null : (error ?? this.error),
     );
@@ -76,11 +82,7 @@ class CheckoutController extends StateNotifier<CheckoutState> {
       state = state.copyWith(phone: v, clearError: true);
 
   void setDepartment(String? v) {
-    state = state.copyWith(
-      department: v,
-      city: null,
-      clearError: true,
-    );
+    state = state.copyWith(department: v, city: null, clearError: true);
   }
 
   void setCity(String? v) =>
@@ -88,6 +90,12 @@ class CheckoutController extends StateNotifier<CheckoutState> {
 
   void setAddress(String v) =>
       state = state.copyWith(address: v, clearError: true);
+
+  void setHolderName(String v) =>
+      state = state.copyWith(holderName: v, clearError: true);
+
+  void setSourceBank(String? v) =>
+      state = state.copyWith(sourceBank: v, clearError: true);
 
   void setCouponCode(String v) => state = state.copyWith(
         couponCode: v,

@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum OrderStatus {
-  pendienteConfirmacion('pendiente_confirmacion', 'Pendiente'),
-  confirmado('confirmado', 'Confirmado'),
-  despachadoDropi('despachado_dropi', 'Despachado'),
+  pendientePago('pendiente_pago', 'Pendiente de pago'),
+  pagado('pagado', 'Pagado'),
+  comprandoProveedor('comprando_proveedor', 'Comprando al proveedor'),
+  listoDespacho('listo_despacho', 'Listo para despachar'),
+  despachado('despachado', 'Despachado'),
   entregado('entregado', 'Entregado'),
   cancelado('cancelado', 'Cancelado');
 
@@ -13,7 +15,7 @@ enum OrderStatus {
 
   static OrderStatus fromValue(String? v) => OrderStatus.values.firstWhere(
         (s) => s.value == v,
-        orElse: () => OrderStatus.pendienteConfirmacion,
+        orElse: () => OrderStatus.pendientePago,
       );
 }
 
@@ -65,13 +67,12 @@ class Order {
     this.subtotal = 0,
     this.discount = 0,
     this.couponCode,
-    this.dropiOrderId,
-    this.dropiTrackingNumber,
-    this.dropiStatus,
+    this.holderName,
+    this.sourceBank,
     this.notes,
     this.createdAt,
     this.updatedAt,
-    this.whatsappConfirmedAt,
+    this.paidAt,
     this.confirmedByUid,
   });
 
@@ -87,17 +88,23 @@ class Order {
   final String? couponCode;
   final int total;
   final OrderStatus status;
-  final String? dropiOrderId;
-  final String? dropiTrackingNumber;
-  final String? dropiStatus;
+
+  /// Nombre del titular de la cuenta bancaria desde la que transfirió.
+  final String? holderName;
+
+  /// Banco desde el que realizó la transferencia.
+  final String? sourceBank;
+
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final DateTime? whatsappConfirmedAt;
+  final DateTime? paidAt;
   final String? confirmedByUid;
 
-  int get itemCount =>
-      items.fold(0, (sum, it) => sum + it.quantity);
+  int get itemCount => items.fold(0, (sum, it) => sum + it.quantity);
+
+  String get shortId =>
+      id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
 
   factory Order.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -120,14 +127,12 @@ class Order {
         couponCode: map['couponCode'] as String?,
         total: (map['total'] as num?)?.toInt() ?? 0,
         status: OrderStatus.fromValue(map['status'] as String?),
-        dropiOrderId: map['dropiOrderId'] as String?,
-        dropiTrackingNumber: map['dropiTrackingNumber'] as String?,
-        dropiStatus: map['dropiStatus'] as String?,
+        holderName: map['holderName'] as String?,
+        sourceBank: map['sourceBank'] as String?,
         notes: map['notes'] as String?,
         createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
-        whatsappConfirmedAt:
-            (map['whatsappConfirmedAt'] as Timestamp?)?.toDate(),
+        paidAt: (map['paidAt'] as Timestamp?)?.toDate(),
         confirmedByUid: map['confirmedByUid'] as String?,
       );
 
@@ -143,17 +148,14 @@ class Order {
         'couponCode': couponCode,
         'total': total,
         'status': status.value,
-        'dropiOrderId': dropiOrderId,
-        'dropiTrackingNumber': dropiTrackingNumber,
-        'dropiStatus': dropiStatus,
+        'holderName': holderName,
+        'sourceBank': sourceBank,
         'notes': notes,
         'createdAt': createdAt != null
             ? Timestamp.fromDate(createdAt!)
             : FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'whatsappConfirmedAt': whatsappConfirmedAt != null
-            ? Timestamp.fromDate(whatsappConfirmedAt!)
-            : null,
+        'paidAt': paidAt != null ? Timestamp.fromDate(paidAt!) : null,
         'confirmedByUid': confirmedByUid,
       };
 
@@ -169,10 +171,11 @@ class Order {
     String? couponCode,
     int? total,
     OrderStatus? status,
-    String? dropiOrderId,
-    String? dropiTrackingNumber,
-    String? dropiStatus,
+    String? holderName,
+    String? sourceBank,
     String? notes,
+    DateTime? paidAt,
+    String? confirmedByUid,
   }) =>
       Order(
         id: id,
@@ -187,13 +190,12 @@ class Order {
         couponCode: couponCode ?? this.couponCode,
         total: total ?? this.total,
         status: status ?? this.status,
-        dropiOrderId: dropiOrderId ?? this.dropiOrderId,
-        dropiTrackingNumber: dropiTrackingNumber ?? this.dropiTrackingNumber,
-        dropiStatus: dropiStatus ?? this.dropiStatus,
+        holderName: holderName ?? this.holderName,
+        sourceBank: sourceBank ?? this.sourceBank,
         notes: notes ?? this.notes,
         createdAt: createdAt,
         updatedAt: updatedAt,
-        whatsappConfirmedAt: whatsappConfirmedAt,
-        confirmedByUid: confirmedByUid,
+        paidAt: paidAt ?? this.paidAt,
+        confirmedByUid: confirmedByUid ?? this.confirmedByUid,
       );
 }

@@ -10,6 +10,7 @@ import '../../../services/firebase/firebase_providers.dart';
 import '../../client_store/controllers/cart_controller.dart';
 import '../controllers/checkout_controller.dart';
 import '../widgets/checkout_form.dart';
+import 'payment_info_view.dart';
 
 class CheckoutView extends ConsumerStatefulWidget {
   const CheckoutView({super.key});
@@ -32,8 +33,8 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final cart = ref.watch(cartControllerProvider);
     final checkout = ref.watch(checkoutControllerProvider);
 
-    final total = (cart.subtotal - checkout.discountAmount)
-        .clamp(0, cart.subtotal);
+    final total =
+        (cart.subtotal - checkout.discountAmount).clamp(0, cart.subtotal);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -137,9 +138,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: checkout.isSubmitting
-                            ? null
-                            : _confirm,
+                        onPressed: checkout.isSubmitting ? null : _confirm,
                         icon: checkout.isSubmitting
                             ? const SizedBox(
                                 width: 16,
@@ -152,7 +151,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                             : const Icon(Icons.check_rounded),
                         label: Text(
                           checkout.isSubmitting
-                              ? 'Enviando...'
+                              ? 'Registrando...'
                               : AppStrings.confirmOrder,
                         ),
                       ),
@@ -160,7 +159,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     const SizedBox(height: 12),
                     Center(
                       child: Text(
-                        '💳 Pago contra entrega',
+                        'El pedido se procesa una vez acreditado el pago.',
                         style: Theme.of(context)
                             .textTheme
                             .labelMedium
@@ -182,7 +181,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final checkout = ref.read(checkoutControllerProvider);
     final ctrl = ref.read(checkoutControllerProvider.notifier);
 
-    // ── Validaciones locales ─────────────────────────────────
     if (cart.isEmpty) {
       ctrl.setError('El carrito está vacío.');
       return;
@@ -203,24 +201,29 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       ctrl.setError('Ingresá una dirección o referencia válida.');
       return;
     }
+    if (checkout.holderName.trim().length < 3) {
+      ctrl.setError('Ingresá el nombre del titular de la cuenta.');
+      return;
+    }
+    if (checkout.sourceBank == null) {
+      ctrl.setError('Seleccioná el banco desde el que vas a transferir.');
+      return;
+    }
 
     ctrl.setSubmitting(true);
 
     try {
       final fs = ref.read(firestoreServiceProvider);
-      final wa = ref.read(whatsappServiceProvider);
       final analytics = ref.read(analyticsServiceProvider);
 
-      // ── Blacklist anti-fraude ─────────────────────────────
       final isBlocked = await fs.isPhoneBlacklisted(checkout.phone);
       if (isBlocked) {
         ctrl.setError(AppStrings.genericError);
         return;
       }
 
-      // ── Construir pedido ──────────────────────────────────
-      final total = (cart.subtotal - checkout.discountAmount)
-          .clamp(0, cart.subtotal);
+      final total =
+          (cart.subtotal - checkout.discountAmount).clamp(0, cart.subtotal);
 
       final items = cart.items
           .map((it) => OrderItem(
@@ -244,13 +247,13 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         discount: checkout.discountAmount,
         couponCode: checkout.appliedCouponCode,
         total: total,
-        status: OrderStatus.pendienteConfirmacion,
+        status: OrderStatus.pendientePago,
+        holderName: checkout.holderName.trim(),
+        sourceBank: checkout.sourceBank,
       );
 
-      // ── Guardar en Firestore ──────────────────────────────
       final orderId = await fs.createOrder(order);
 
-      // ── Incrementar uso del cupón ─────────────────────────
       if (checkout.appliedCouponCode != null) {
         try {
           final coupon =
@@ -259,10 +262,8 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         } catch (_) {}
       }
 
-      // ── Leer settings para el número de WhatsApp ──────────
       final settings = await fs.fetchSettings();
 
-      // ── Crear orden final con ID real ─────────────────────
       final finalOrder = Order(
         id: orderId,
         customerName: order.customerName,
@@ -276,48 +277,38 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         couponCode: order.couponCode,
         total: order.total,
         status: order.status,
+        holderName: order.holderName,
+        sourceBank: order.sourceBank,
       );
 
-      // ── Abrir WhatsApp ────────────────────────────────────
-      await wa.sendOrderToStore(
-        order: finalOrder,
-        storeWhatsappNumber: settings.whatsappNumber,
-        couponCode: checkout.appliedCouponCode,
-        subtotal: cart.subtotal,
-        discount: checkout.discountAmount,
-      );
-
-      // ── Analytics ─────────────────────────────────────────
       await analytics.logPurchase(finalOrder);
-
-      // ── Limpiar carrito ───────────────────────────────────
       await ref.read(cartControllerProvider.notifier).clear();
       ctrl.reset();
 
       if (!mounted) return;
 
       final nav = Navigator.of(context);
-      final messenger = ScaffoldMessenger.of(context);
-      final shortId = orderId.length >= 8
-          ? orderId.substring(0, 8).toUpperCase()
-          : orderId.toUpperCase();
 
-      // Cerrar checkout y carrito (si están apilados).
+      // Cerrar checkout.
       nav.pop();
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (nav.canPop()) nav.pop();
-      });
 
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Pedido #$shortId creado. Te contactaremos por WhatsApp.',
+      // Abrir pantalla de datos de pago.
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          isDismissible: false,
+          enableDrag: false,
+          backgroundColor: Colors.transparent,
+          builder: (_) => PaymentInfoView(
+            shortId: finalOrder.shortId,
+            amount: total,
+            settings: settings,
           ),
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.success,
-        ),
-      );
+        );
+      });
     } catch (e) {
       ctrl.setError(AppStrings.genericError);
     }

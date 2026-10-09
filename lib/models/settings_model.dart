@@ -8,6 +8,9 @@ class StoreSettings {
     required this.currencySymbol,
     this.shippingInfo = '',
     this.dropiProxyUrl = '',
+    this.paymentHolderName = '',
+    this.paymentBank = '',
+    this.paymentAccount = '',
     this.updatedAt,
   });
 
@@ -17,6 +20,16 @@ class StoreSettings {
   final String currencySymbol;
   final String shippingInfo;
   final String dropiProxyUrl;
+
+  /// Nombre del titular que recibe las transferencias.
+  final String paymentHolderName;
+
+  /// Banco o billetera donde se reciben las transferencias.
+  final String paymentBank;
+
+  /// Número de cuenta, celular o CBU para transferir.
+  final String paymentAccount;
+
   final DateTime? updatedAt;
 
   static const StoreSettings fallback = StoreSettings(
@@ -24,6 +37,9 @@ class StoreSettings {
     contactEmail: 'contacto@tiendavertex.com',
     address: 'Luque · Asunción, Paraguay',
     currencySymbol: '₲',
+    paymentHolderName: 'Titular pendiente',
+    paymentBank: 'Banco pendiente',
+    paymentAccount: 'Cuenta pendiente',
   );
 
   factory StoreSettings.fromFirestore(DocumentSnapshot? doc) {
@@ -33,12 +49,20 @@ class StoreSettings {
   }
 
   factory StoreSettings.fromMap(Map<String, dynamic> map) => StoreSettings(
-        whatsappNumber: map['whatsappNumber'] as String? ?? fallback.whatsappNumber,
-        contactEmail: map['contactEmail'] as String? ?? fallback.contactEmail,
+        whatsappNumber:
+            map['whatsappNumber'] as String? ?? fallback.whatsappNumber,
+        contactEmail:
+            map['contactEmail'] as String? ?? fallback.contactEmail,
         address: map['address'] as String? ?? fallback.address,
-        currencySymbol: map['currencySymbol'] as String? ?? fallback.currencySymbol,
+        currencySymbol:
+            map['currencySymbol'] as String? ?? fallback.currencySymbol,
         shippingInfo: map['shippingInfo'] as String? ?? '',
         dropiProxyUrl: map['dropiProxyUrl'] as String? ?? '',
+        paymentHolderName:
+            map['paymentHolderName'] as String? ?? fallback.paymentHolderName,
+        paymentBank: map['paymentBank'] as String? ?? fallback.paymentBank,
+        paymentAccount:
+            map['paymentAccount'] as String? ?? fallback.paymentAccount,
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       );
 
@@ -49,6 +73,9 @@ class StoreSettings {
         'currencySymbol': currencySymbol,
         'shippingInfo': shippingInfo,
         'dropiProxyUrl': dropiProxyUrl,
+        'paymentHolderName': paymentHolderName,
+        'paymentBank': paymentBank,
+        'paymentAccount': paymentAccount,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -59,6 +86,9 @@ class StoreSettings {
     String? currencySymbol,
     String? shippingInfo,
     String? dropiProxyUrl,
+    String? paymentHolderName,
+    String? paymentBank,
+    String? paymentAccount,
   }) =>
       StoreSettings(
         whatsappNumber: whatsappNumber ?? this.whatsappNumber,
@@ -67,6 +97,9 @@ class StoreSettings {
         currencySymbol: currencySymbol ?? this.currencySymbol,
         shippingInfo: shippingInfo ?? this.shippingInfo,
         dropiProxyUrl: dropiProxyUrl ?? this.dropiProxyUrl,
+        paymentHolderName: paymentHolderName ?? this.paymentHolderName,
+        paymentBank: paymentBank ?? this.paymentBank,
+        paymentAccount: paymentAccount ?? this.paymentAccount,
         updatedAt: updatedAt,
       );
 }

@@ -168,13 +168,13 @@ class FirestoreService {
   // ── PEDIDOS ───────────────────────────────────────────────────
 
   Future<String> createOrder(Order order) async {
-    final ref = _db.collection(ApiConstants.colOrders).doc();
-    final data = order.toMap();
-    data['id'] = ref.id;
-    data['status'] = OrderStatus.pendienteConfirmacion.value;
-    await ref.set(data);
-    return ref.id;
-  }
+  final ref = _db.collection(ApiConstants.colOrders).doc();
+  final data = order.toMap();
+  data['id'] = ref.id;
+  data['status'] = OrderStatus.pendientePago.value;
+  await ref.set(data);
+  return ref.id;
+}
 
   Future<Order?> findOrderById(String id) async {
     final doc = await _db.collection(ApiConstants.colOrders).doc(id).get();

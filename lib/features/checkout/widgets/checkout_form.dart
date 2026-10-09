@@ -10,6 +10,25 @@ import '../../../services/firebase/firebase_providers.dart';
 import '../../client_store/controllers/cart_controller.dart';
 import '../controllers/checkout_controller.dart';
 
+const List<String> kSourceBanks = [
+  'ueno bank',
+  'Banco Continental',
+  'Banco Itaú',
+  'Banco Atlas',
+  'Banco Familiar',
+  'Banco Visión',
+  'Banco Sudameris',
+  'Banco Regional',
+  'Banco GNB',
+  'Banco Basa',
+  'Banco FIC',
+  'Financiera Paraguayo Japonesa',
+  'Tigo Money',
+  'Personal Pay',
+  'Billetera Zimple',
+  'Otro',
+];
+
 class CheckoutForm extends ConsumerStatefulWidget {
   const CheckoutForm({super.key});
 
@@ -22,6 +41,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _couponCtrl;
+  late final TextEditingController _holderCtrl;
   bool _isValidatingCoupon = false;
 
   @override
@@ -32,6 +52,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     _phoneCtrl = TextEditingController(text: s.phone);
     _addressCtrl = TextEditingController(text: s.address);
     _couponCtrl = TextEditingController(text: s.couponCode);
+    _holderCtrl = TextEditingController(text: s.holderName);
   }
 
   @override
@@ -40,6 +61,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _couponCtrl.dispose();
+    _holderCtrl.dispose();
     super.dispose();
   }
 
@@ -61,7 +83,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             textCapitalization: TextCapitalization.words,
             onChanged: ctrl.setFullName,
             decoration: const InputDecoration(
-              hintText: 'Ej: Juan Pérez',
+              hintText: 'Ej: Julio Prieto',
               prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
             ),
           ),
@@ -127,6 +149,66 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
         ),
+
+        const Divider(height: 32),
+
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.account_balance_outlined,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Datos para identificar tu pago',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12, left: 4),
+          child: Text(
+            'Usamos estos datos para reconocer tu transferencia al recibirla.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+          ),
+        ),
+        _Field(
+          label: 'Nombre del titular de la cuenta',
+          child: TextField(
+            controller: _holderCtrl,
+            textCapitalization: TextCapitalization.words,
+            onChanged: ctrl.setHolderName,
+            decoration: const InputDecoration(
+              hintText: 'Como figura en tu cuenta bancaria',
+              prefixIcon: Icon(Icons.badge_outlined, size: 20),
+            ),
+          ),
+        ),
+        _Field(
+          label: 'Banco desde el que vas a transferir',
+          child: DropdownButtonFormField<String>(
+            value: state.sourceBank,
+            isExpanded: true,
+            items: kSourceBanks
+                .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                .toList(),
+            onChanged: ctrl.setSourceBank,
+            decoration: const InputDecoration(
+              hintText: 'Seleccionar banco',
+              prefixIcon: Icon(Icons.account_balance_outlined, size: 20),
+            ),
+          ),
+        ),
+
+        const Divider(height: 32),
+
         _Field(
           label: AppStrings.fieldCoupon,
           child: Row(
@@ -217,19 +299,13 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
       final cart = ref.read(cartControllerProvider);
 
       final coupon = await fs.findCouponByCode(code);
-      if (coupon == null) {
-        ctrl.rejectCoupon(AppStrings.couponInvalid);
-        return;
-      }
-      if (!coupon.isUsable) {
+      if (coupon == null || !coupon.isUsable) {
         ctrl.rejectCoupon(AppStrings.couponInvalid);
         return;
       }
       final discount = coupon.calculateDiscount(cart.subtotal);
       if (discount <= 0) {
-        ctrl.rejectCoupon(
-          'El cupón requiere un mínimo de compra mayor.',
-        );
+        ctrl.rejectCoupon('El cupón requiere un monto mínimo mayor.');
         return;
       }
       ctrl.applyCoupon(code: coupon.code, discountAmount: discount);
