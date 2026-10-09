@@ -34,6 +34,7 @@ class _OrderManagerViewState extends ConsumerState<OrderManagerView> {
 
     return Column(
       children: [
+        // ── Filtros ──────────────────────────────────────
         Container(
           color: AppColors.surface,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -45,6 +46,15 @@ class _OrderManagerViewState extends ConsumerState<OrderManagerView> {
                 decoration: InputDecoration(
                   hintText: 'Buscar por cliente, teléfono o #ID...',
                   prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            ctrl.setSearch('');
+                          },
+                        )
+                      : null,
                 ),
               ),
               const SizedBox(height: 10),
@@ -72,18 +82,30 @@ class _OrderManagerViewState extends ConsumerState<OrderManagerView> {
             ],
           ),
         ),
+
+        // ── Lista ────────────────────────────────────────
         Expanded(
-          child: orders.isEmpty
-              ? const Center(child: Text('Sin pedidos'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: orders.length,
-                  itemBuilder: (_, i) => _OrderTile(
-                    order: orders[i],
-                    onTap: () =>
-                        context.go('/admin/pedidos/${orders[i].id}'),
-                  ),
-                ),
+          child: state.isLoading && state.orders.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primary),
+                )
+              : orders.isEmpty
+                  ? const _EmptyState()
+                  : RefreshIndicator(
+                      onRefresh: ctrl.load,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: orders.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _OrderTile(
+                          order: orders[i],
+                          onTap: () => context
+                              .go('/admin/pedidos/${orders[i].id}'),
+                        ),
+                      ),
+                    ),
         ),
       ],
     );
@@ -216,6 +238,37 @@ class _OrderTile extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.receipt_long_outlined,
+                size: 64, color: AppColors.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              'Sin pedidos',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Los pedidos aparecerán acá cuando los clientes compren.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
           ],
         ),
