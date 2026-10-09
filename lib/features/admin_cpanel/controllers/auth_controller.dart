@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Estado del formulario de login.
+import '../../../services/firebase/firebase_providers.dart';
+
 class LoginState {
   const LoginState({
     this.email = '',

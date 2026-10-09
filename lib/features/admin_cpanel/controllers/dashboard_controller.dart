@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/order_model.dart';
@@ -36,8 +36,7 @@ class DashboardData {
 }
 
 class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
-  DashboardController(this._ref)
-      : super(const AsyncValue.loading()) {
+  DashboardController(this._ref) : super(const AsyncValue.loading()) {
     load();
   }
 
@@ -52,7 +51,6 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
       final startOf7DaysAgo =
           startOfToday.subtract(const Duration(days: 6));
 
-      // Traemos todos los pedidos de los últimos 7 días.
       final snap = await db
           .collection('orders')
           .where(
@@ -61,20 +59,15 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
           )
           .get();
 
-      final orders = snap.docs
-          .map((d) => Order.fromFirestore(d))
-          .toList();
+      final orders = snap.docs.map((d) => Order.fromFirestore(d)).toList();
 
-      int ordersToday = 0;
-      int revenueToday = 0;
-      int pendingPayment = 0;
-      int pendingDispatch = 0;
-      int revenueWeek = 0;
+      var ordersToday = 0;
+      var revenueToday = 0;
+      var pendingPayment = 0;
+      var pendingDispatch = 0;
+      var revenueWeek = 0;
 
-      // Contadores por día (últimos 7 días).
       final dayBuckets = List<int>.filled(7, 0);
-
-      // Map para contar productos vendidos.
       final productCount = <String, int>{};
       final productRevenue = <String, int>{};
 
@@ -82,12 +75,10 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
         final date = o.createdAt;
         if (date == null) continue;
 
-        // ¿Es hoy?
         final isToday = date.year == now.year &&
             date.month == now.month &&
             date.day == now.day;
 
-        // Solo contamos como ingreso si no está cancelado.
         final countsAsRevenue = o.status != OrderStatus.cancelado;
 
         if (isToday) {
@@ -103,7 +94,6 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
           pendingDispatch++;
         }
 
-        // Bucket del día (0 = hace 6 días, 6 = hoy).
         final diff = startOfToday.difference(
           DateTime(date.year, date.month, date.day),
         );
@@ -112,7 +102,6 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
           dayBuckets[idx] += o.total;
         }
 
-        // Contar productos vendidos.
         if (countsAsRevenue) {
           for (final item in o.items) {
             productCount[item.title] =
@@ -123,7 +112,6 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
         }
       }
 
-      // Top 5 productos por unidades vendidas.
       final top = productCount.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
       final topProducts = top.take(5).map((e) {

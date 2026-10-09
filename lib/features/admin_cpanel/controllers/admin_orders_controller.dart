@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/order_model.dart';
@@ -36,7 +36,6 @@ class AdminOrdersState {
     return list;
   }
 
-  /// Cuenta de pedidos por estado para mostrar en chips.
   Map<OrderStatus, int> get countByStatus {
     final map = <OrderStatus, int>{};
     for (final s in OrderStatus.values) {
@@ -75,10 +74,7 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final db = _ref.read(firestoreInstanceProvider);
-      final snap = await db
-          .collection('orders')
-          .limit(200)
-          .get();
+      final snap = await db.collection('orders').limit(200).get();
 
       final orders = snap.docs
           .map((d) => Order.fromFirestore(d))
@@ -119,7 +115,6 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Si el nuevo estado es "pagado", guardamos la fecha.
       if (newStatus == OrderStatus.pagado) {
         update['paidAt'] = FieldValue.serverTimestamp();
       }

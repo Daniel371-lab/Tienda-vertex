@@ -4,13 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../models/category_model.dart';
+import '../../../services/firebase/firebase_providers.dart';
 import '../controllers/admin_categories_controller.dart';
 
-/// Formulario para crear o editar una categoría (nicho).
 class CategoryFormView extends ConsumerStatefulWidget {
   const CategoryFormView({super.key, this.categoryId});
-
-  /// Si es null → creación. Si tiene valor → edición.
   final String? categoryId;
 
   @override
@@ -27,7 +25,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
   bool _loading = true;
   bool _saving = false;
 
-  // Íconos disponibles.
   static const Map<String, IconData> _icons = {
     'perfume_icon': Icons.spa_outlined,
     'watch_icon': Icons.watch_outlined,
@@ -102,23 +99,20 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
               onChanged: (v) {
-                // Auto-generar slug si no está editando manualmente.
                 if (!_isEditing || _slugCtrl.text.isEmpty) {
                   _slugCtrl.text = _slugify(v);
                 }
               },
-              decoration: const InputDecoration(
-                hintText: 'Ej: Perfumería',
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().length < 3) ? 'Nombre inválido' : null,
+              decoration: const InputDecoration(hintText: 'Ej: Perfumería'),
+              validator: (v) => (v == null || v.trim().length < 3)
+                  ? 'Nombre inválido'
+                  : null,
             ),
             const SizedBox(height: 16),
-
             _label(context, 'Slug (URL)'),
             TextFormField(
               controller: _slugCtrl,
-              enabled: !_isEditing, // El slug no se puede cambiar una vez creado
+              enabled: !_isEditing,
               decoration: InputDecoration(
                 hintText: 'perfumes',
                 prefixText: '/',
@@ -135,7 +129,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
               },
             ),
             const SizedBox(height: 20),
-
             _label(context, 'Ícono'),
             _IconPicker(
               icons: _icons,
@@ -143,7 +136,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
               onSelect: (k) => setState(() => _iconKey = k),
             ),
             const SizedBox(height: 20),
-
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -158,7 +150,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
               ),
             ),
             const SizedBox(height: 28),
-
             SizedBox(
               height: 52,
               child: FilledButton.icon(
@@ -212,7 +203,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _saving = true);
 
     final ctrl = ref.read(adminCategoriesControllerProvider.notifier);
@@ -221,7 +211,8 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
 
     bool ok;
     if (_isEditing) {
-      final existing = categories.firstWhere((c) => c.id == widget.categoryId);
+      final existing =
+          categories.firstWhere((c) => c.id == widget.categoryId);
       final updated = existing.copyWith(
         name: _nameCtrl.text.trim(),
         icon: _iconKey,
@@ -288,14 +279,10 @@ class _IconPicker extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primarySoft
-                  : AppColors.surface,
+              color: isSelected ? AppColors.primarySoft : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.border,
+                color: isSelected ? AppColors.primary : AppColors.border,
                 width: isSelected ? 1.8 : 1,
               ),
             ),

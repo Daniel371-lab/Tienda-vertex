@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -80,7 +81,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Contacto ─────────────────────────────────
             _SectionTitle(
               icon: Icons.contact_phone_outlined,
               title: 'Contacto',
@@ -129,10 +129,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 hintText: 'Envíos a todo Paraguay.',
               ),
             ),
-
             const SizedBox(height: 28),
-
-            // ── Pago ─────────────────────────────────────
             _SectionTitle(
               icon: Icons.account_balance_outlined,
               title: 'Datos para transferencia',
@@ -171,10 +168,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Requerido' : null,
             ),
-
             const SizedBox(height: 28),
-
-            // ── IA ───────────────────────────────────────
             _SectionTitle(
               icon: Icons.auto_awesome_rounded,
               title: 'Inteligencia artificial',
@@ -200,9 +194,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 ),
               ),
             ),
-
             const SizedBox(height: 32),
-
             SizedBox(
               height: 52,
               child: FilledButton.icon(

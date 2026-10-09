@@ -66,7 +66,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   }
 
   Future<void> _init() async {
-    // Si viene un draft de la IA, precargamos.
     if (widget.draft != null) {
       final d = widget.draft!;
       _titleCtrl.text = d.title;
@@ -114,19 +113,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
       );
     }
 
-    final subs = _categoryId == null
-        ? <Subcategory>[]
-        : categories
-            .firstWhere(
-              (c) => c.id == _categoryId,
-              orElse: () => const Category(
-                id: '',
-                name: '',
-                slug: '',
-                icon: '',
-              ),
-            )
-            .subcategories;
+    final subs = _getSubcategories(categories);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -143,18 +130,10 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Imágenes ─────────────────────────────────
-            Text('Imágenes', style: _labelStyle(context)),
+            _label(context, 'Imágenes'),
             const SizedBox(height: 10),
-            _ImagesSection(
-              images: _images,
-              isUploading: _uploadingImage,
-              onAdd: _pickImage,
-              onRemove: (url) => setState(() => _images.remove(url)),
-            ),
+            _buildImagesRow(),
             const SizedBox(height: 20),
-
-            // ── Título ───────────────────────────────────
             _label(context, 'Título'),
             TextFormField(
               controller: _titleCtrl,
@@ -167,8 +146,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                   : null,
             ),
             const SizedBox(height: 16),
-
-            // ── Descripción ──────────────────────────────
             _label(context, 'Descripción'),
             TextFormField(
               controller: _descCtrl,
@@ -178,8 +155,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // ── Precio + Compare ─────────────────────────
             Row(
               children: [
                 Expanded(
@@ -193,7 +168,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
-                        decoration: const InputDecoration(hintText: '280000'),
+                        decoration:
+                            const InputDecoration(hintText: '280000'),
                         validator: (v) {
                           final n = int.tryParse(v ?? '');
                           if (n == null || n <= 0) {
@@ -226,8 +202,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // ── Stock + Tags ─────────────────────────────
             Row(
               children: [
                 SizedBox(
@@ -265,8 +239,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // ── Categoría + Subcategoría ─────────────────
             Row(
               children: [
                 Expanded(
@@ -287,12 +259,10 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                           _categoryId = v;
                           _subcategoryId = null;
                         }),
-                        validator: (v) => v == null
-                            ? 'Seleccioná una categoría'
-                            : null,
-                        decoration: const InputDecoration(
-                          hintText: 'Seleccionar',
-                        ),
+                        validator: (v) =>
+                            v == null ? 'Seleccioná una categoría' : null,
+                        decoration:
+                            const InputDecoration(hintText: 'Seleccionar'),
                       ),
                     ],
                   ),
@@ -325,8 +295,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // ── Toggles ──────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -353,8 +321,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // ── Guardar ──────────────────────────────────
             SizedBox(
               height: 52,
               child: FilledButton.icon(
@@ -375,6 +341,49 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         ),
       ),
     );
+  }
+
+  List<Subcategory> _getSubcategories(List<Category> categories) {
+    if (_categoryId == null) return [];
+    for (final c in categories) {
+      if (c.id == _categoryId) return c.subcategories;
+    }
+    return [];
+  }
+
+  Widget _buildImagesRow() {
+    return SizedBox(
+      height: 100,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: _buildImageItems(),
+      ),
+    );
+  }
+
+  List<Widget> _buildImageItems() {
+    final items = <Widget>[];
+
+    for (final url in _images) {
+      items.add(
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: _ImageThumb(
+            url: url,
+            onRemove: () => setState(() => _images.remove(url)),
+          ),
+        ),
+      );
+    }
+
+    if (_images.length < 6) {
+      items.add(_AddImageButton(
+        isUploading: _uploadingImage,
+        onTap: _pickImage,
+      ));
+    }
+
+    return items;
   }
 
   TextStyle? _labelStyle(BuildContext context) => Theme.of(context)
@@ -498,99 +507,106 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   }
 }
 
-class _ImagesSection extends StatelessWidget {
-  const _ImagesSection({
-    required this.images,
-    required this.isUploading,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  final List<String> images;
-  final bool isUploading;
-  final VoidCallback onAdd;
-  final void Function(String url) onRemove;
+class _ImageThumb extends StatelessWidget {
+  const _ImageThumb({required this.url, required this.onRemove});
+  final String url;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 100,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final url in images)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      url,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 100,
-                        height: 100,
-                        color: AppColors.surfaceAlt,
-                        child: const Icon(Icons.broken_image_outlined,
-                            color: AppColors.textMuted),
-                      ),
-                    ),
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            url,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 100,
+              height: 100,
+              color: AppColors.surfaceAlt,
+              child: const Icon(
+                Icons.broken_image_outlined,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: AppColors.danger,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 12,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddImageButton extends StatelessWidget {
+  const _AddImageButton({required this.isUploading, required this.onTap});
+  final bool isUploading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isUploading ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: isUploading
+            ? const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: InkWell(
-                      onTap: () => onRemove(url),
-                      borderRadius: BorderRadius.circular(999),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.danger,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close_rounded,
-                            size: 12, color: Colors.white),
-                      ),
+                ),
+              )
+            : const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Agregar',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-            ),
-          if (images.length < 6)
-            InkWell(
-              onTap: isUploading ? null : onAdd,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: isUploading
-                    ? const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.primary),
-                        ),
-                      )
-                    : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_photo_alternate_outlined,
-                              color: AppColors.primary),
-                          SizedBox(height: 4),
-                          Text(
-                            'Agregar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-              
+      ),
+    );
+  }
+}
