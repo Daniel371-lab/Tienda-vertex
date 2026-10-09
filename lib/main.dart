@@ -14,6 +14,21 @@ import 'services/seed/seed_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Captura de errores de widgets: muestra el error en pantalla
+  // en vez de la caja gris por defecto.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: Colors.red,
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Text(
+          'ERROR EN WIDGET:\n\n${details.exception}\n\n${details.stack}',
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+        ),
+      ),
+    );
+  };
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
