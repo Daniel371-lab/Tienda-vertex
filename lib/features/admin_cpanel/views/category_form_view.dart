@@ -72,12 +72,18 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
+
+    final category = _isEditing
+        ? ref
+            .watch(adminCategoriesControllerProvider)
+            .categories
+            .where((c) => c.id == widget.categoryId)
+            .firstOrNull
+        : null;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -149,11 +155,70 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
                 onChanged: (v) => setState(() => _isActive = v),
               ),
             ),
+
+            // ── Sección de subcategorías (solo en edición) ─────
+            if (_isEditing && category != null) ...[
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.label_outline_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Subcategorías',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${category.subcategories.length} '
+                    'subcategoría${category.subcategories.length == 1 ? "" : "s"} '
+                    '· Ordenables y editables',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  onTap: () async {
+                    // Guardar cambios antes de ir a subcategorías.
+                    await _save(silent: true);
+                    if (!context.mounted) return;
+                    context.go(
+                      '/admin/categorias/${widget.categoryId}/subcategorias',
+                    );
+                  },
+                ),
+              ),
+            ],
+
             const SizedBox(height: 28),
             SizedBox(
               height: 52,
               child: FilledButton.icon(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving ? null : () => _save(),
                 icon: _saving
                     ? const SizedBox(
                         width: 18,
@@ -201,9 +266,10 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
         .replaceAll(RegExp(r'-+'), '-');
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool silent = false}) async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
+
+    if (!silent) setState(() => _saving = true);
 
     final ctrl = ref.read(adminCategoriesControllerProvider.notifier);
     final categories =
@@ -229,6 +295,10 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
 
     if (!mounted) return;
 
+    if (!silent) setState(() => _saving = false);
+
+    if (silent) return;
+
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -241,7 +311,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
       );
       context.go('/admin/categorias');
     } else {
-      setState(() => _saving = false);
       final error = ref.read(adminCategoriesControllerProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

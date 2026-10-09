@@ -35,9 +35,7 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
 
   final Ref _ref;
 
-  // ─────────────────────────────────────────────────────────
-  // LECTURA
-  // ─────────────────────────────────────────────────────────
+  // ── LECTURA ───────────────────────────────────────────────
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -58,9 +56,7 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // CREAR / EDITAR
-  // ─────────────────────────────────────────────────────────
+  // ── CREAR / EDITAR CATEGORÍA ──────────────────────────────
 
   Future<bool> createCategory({
     required String name,
@@ -71,7 +67,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     try {
       final db = _ref.read(firestoreInstanceProvider);
 
-      // Validar slug único.
       final exists = await db
           .collection('categories')
           .where('slug', isEqualTo: slug)
@@ -132,11 +127,8 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // ELIMINAR
-  // ─────────────────────────────────────────────────────────
+  // ── ELIMINAR CATEGORÍA ────────────────────────────────────
 
-  /// Cuenta cuántos productos tiene la categoría.
   Future<int> countProductsInCategory(String categoryId) async {
     try {
       final db = _ref.read(firestoreInstanceProvider);
@@ -151,10 +143,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     }
   }
 
-  /// Elimina la categoría. Antes, maneja los productos según la acción elegida.
-  ///
-  /// [reassignToCategoryId]: si no es null, reasigna los productos.
-  /// [archiveProducts]: si es true, marca los productos como inactivos.
   Future<bool> deleteCategory({
     required Category category,
     String? reassignToCategoryId,
@@ -163,13 +151,11 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     try {
       final db = _ref.read(firestoreInstanceProvider);
 
-      // Obtener todos los productos de la categoría.
       final productsSnap = await db
           .collection('products')
           .where('categoryId', isEqualTo: category.id)
           .get();
 
-      // Manejarlos según la acción.
       if (productsSnap.docs.isNotEmpty) {
         final batch = db.batch();
         for (final doc in productsSnap.docs) {
@@ -189,7 +175,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
         await batch.commit();
       }
 
-      // Eliminar la categoría.
       await db.collection('categories').doc(category.id).delete();
 
       await load();
@@ -200,11 +185,8 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // REORDENAR
-  // ─────────────────────────────────────────────────────────
+  // ── REORDENAR CATEGORÍAS ──────────────────────────────────
 
-  /// Guarda el nuevo orden tras un drag & drop.
   Future<bool> reorderCategories(int oldIndex, int newIndex) async {
     if (oldIndex < 0 ||
         oldIndex >= state.categories.length ||
@@ -219,7 +201,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     final item = list.removeAt(oldIndex);
     list.insert(newIndex, item);
 
-    // Actualizamos el state inmediatamente (feedback visual).
     state = state.copyWith(categories: list);
 
     try {
@@ -241,9 +222,7 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // SUBCATEGORÍAS
-  // ─────────────────────────────────────────────────────────
+  // ── SUBCATEGORÍAS ─────────────────────────────────────────
 
   Future<bool> addSubcategory({
     required Category category,
@@ -283,9 +262,22 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     required Category category,
     required Subcategory subcategory,
   }) async {
+    // Validar slug único dentro de la categoría (excluyendo la actual).
+    final conflict = category.subcategories
+        .where((s) => s.id != subcategory.id && s.slug == subcategory.slug)
+        .isNotEmpty;
+    if (conflict) {
+      state = state.copyWith(
+        error: 'Ya existe otra subcategoría con ese slug.',
+      );
+      return false;
+    }
+
     final subs = category.subcategories
         .map((s) => s.id == subcategory.id ? subcategory : s)
-        .toList();
+        .toList()
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
     return updateCategory(category.copyWith(subcategories: subs));
   }
 
@@ -297,6 +289,34 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
         .where((s) => s.id != subcategoryId)
         .toList();
     return updateCategory(category.copyWith(subcategories: subs));
+  }
+
+  /// Reordena subcategorías con drag & drop.
+  Future<bool> reorderSubcategories({
+    required Category category,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    if (oldIndex < 0 ||
+        oldIndex >= category.subcategories.length ||
+        newIndex < 0 ||
+        newIndex > category.subcategories.length) {
+      return false;
+    }
+
+    if (newIndex > oldIndex) newIndex -= 1;
+
+    final subs = [...category.subcategories];
+    final item = subs.removeAt(oldIndex);
+    subs.insert(newIndex, item);
+
+    // Reasignamos orderIndex secuencialmente.
+    final reindexed = <Subcategory>[];
+    for (var i = 0; i < subs.length; i++) {
+      reindexed.add(subs[i].copyWith(orderIndex: i + 1));
+    }
+
+    return updateCategory(category.copyWith(subcategories: reindexed));
   }
 
   void clearError() => state = state.copyWith(clearError: true);

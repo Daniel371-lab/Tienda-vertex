@@ -32,83 +32,82 @@ class _OrderManagerViewState extends ConsumerState<OrderManagerView> {
     final orders = state.filteredOrders;
     final counts = state.countByStatus;
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      body: Column(
-        children: [
-          // ── Filtros ──────────────────────────────────────
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchCtrl,
-                  onChanged: ctrl.setSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por cliente, teléfono o #ID...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              ctrl.setSearch('');
-                            },
-                          )
-                        : null,
-                  ),
+    return Column(
+      children: [
+        // ── Filtros ──────────────────────────────────────
+        Container(
+          color: AppColors.surface,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            children: [
+              TextField(
+                controller: _searchCtrl,
+                onChanged: ctrl.setSearch,
+                decoration: InputDecoration(
+                  hintText: 'Buscar por cliente, teléfono o #ID...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            ctrl.setSearch('');
+                          },
+                        )
+                      : null,
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 38,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 38,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _StatusChip(
+                      label: 'Todos',
+                      count: state.orders.length,
+                      selected: state.statusFilter == null,
+                      onTap: () => ctrl.setStatusFilter(null),
+                    ),
+                    for (final s in OrderStatus.values)
                       _StatusChip(
-                        label: 'Todos',
-                        count: state.orders.length,
-                        selected: state.statusFilter == null,
-                        onTap: () => ctrl.setStatusFilter(null),
+                        label: s.label,
+                        count: counts[s] ?? 0,
+                        selected: state.statusFilter == s,
+                        onTap: () => ctrl.setStatusFilter(s),
                       ),
-                      for (final s in OrderStatus.values)
-                        _StatusChip(
-                          label: s.label,
-                          count: counts[s] ?? 0,
-                          selected: state.statusFilter == s,
-                          onTap: () => ctrl.setStatusFilter(s),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          // ── Lista ────────────────────────────────────────
-          Expanded(
-            child: state.isLoading && state.orders.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : orders.isEmpty
-                    ? const _EmptyState()
-                    : RefreshIndicator(
-                        onRefresh: ctrl.load,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: orders.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (_, i) => _OrderTile(
-                            order: orders[i],
-                            onTap: () => context
-                                .go('/admin/pedidos/${orders[i].id}'),
-                          ),
+        // ── Lista ────────────────────────────────────────
+        Expanded(
+          child: state.isLoading && state.orders.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primary),
+                )
+              : orders.isEmpty
+                  ? const _EmptyState()
+                  : RefreshIndicator(
+                      onRefresh: ctrl.load,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: orders.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _OrderTile(
+                          order: orders[i],
+                          onTap: () => context
+                              .go('/admin/pedidos/${orders[i].id}'),
                         ),
                       ),
-          ),
-        ],
-      ),
+                    ),
+        ),
+      ],
     );
   }
 }
