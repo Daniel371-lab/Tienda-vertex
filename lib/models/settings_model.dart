@@ -11,6 +11,7 @@ class StoreSettings {
     this.paymentHolderName = '',
     this.paymentBank = '',
     this.paymentAccount = '',
+    this.geminiApiKey = '',
     this.updatedAt,
   });
 
@@ -20,15 +21,12 @@ class StoreSettings {
   final String currencySymbol;
   final String shippingInfo;
   final String dropiProxyUrl;
-
-  /// Nombre del titular que recibe las transferencias.
   final String paymentHolderName;
-
-  /// Banco o billetera donde se reciben las transferencias.
   final String paymentBank;
-
-  /// Número de cuenta, celular o CBU para transferir.
   final String paymentAccount;
+
+  /// API Key de Google Gemini para el importador OCR desde captura.
+  final String geminiApiKey;
 
   final DateTime? updatedAt;
 
@@ -40,6 +38,7 @@ class StoreSettings {
     paymentHolderName: 'Titular pendiente',
     paymentBank: 'Banco pendiente',
     paymentAccount: 'Cuenta pendiente',
+    geminiApiKey: '',
   );
 
   factory StoreSettings.fromFirestore(DocumentSnapshot? doc) {
@@ -63,6 +62,7 @@ class StoreSettings {
         paymentBank: map['paymentBank'] as String? ?? fallback.paymentBank,
         paymentAccount:
             map['paymentAccount'] as String? ?? fallback.paymentAccount,
+        geminiApiKey: map['geminiApiKey'] as String? ?? '',
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       );
 
@@ -76,6 +76,7 @@ class StoreSettings {
         'paymentHolderName': paymentHolderName,
         'paymentBank': paymentBank,
         'paymentAccount': paymentAccount,
+        'geminiApiKey': geminiApiKey,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -89,6 +90,7 @@ class StoreSettings {
     String? paymentHolderName,
     String? paymentBank,
     String? paymentAccount,
+    String? geminiApiKey,
   }) =>
       StoreSettings(
         whatsappNumber: whatsappNumber ?? this.whatsappNumber,
@@ -100,6 +102,7 @@ class StoreSettings {
         paymentHolderName: paymentHolderName ?? this.paymentHolderName,
         paymentBank: paymentBank ?? this.paymentBank,
         paymentAccount: paymentAccount ?? this.paymentAccount,
+        geminiApiKey: geminiApiKey ?? this.geminiApiKey,
         updatedAt: updatedAt,
       );
 }
