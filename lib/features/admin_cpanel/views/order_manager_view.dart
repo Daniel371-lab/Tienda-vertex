@@ -83,29 +83,46 @@ class _OrderManagerViewState extends ConsumerState<OrderManagerView> {
           ),
         ),
 
+        // ── DEBUG: contador ─────────────────────────────
+        Container(
+          width: double.infinity,
+          color: Colors.yellow,
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            'DEBUG · isLoading: ${state.isLoading} · '
+            'orders: ${state.orders.length} · '
+            'filtered: ${orders.length} · '
+            'error: ${state.error ?? "ninguno"}',
+            style: const TextStyle(fontSize: 11, color: Colors.black),
+          ),
+        ),
+
         // ── Lista ────────────────────────────────────────
         Expanded(
-          child: state.isLoading && state.orders.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary),
-                )
-              : orders.isEmpty
-                  ? const _EmptyState()
-                  : RefreshIndicator(
-                      onRefresh: ctrl.load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: orders.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (_, i) => _OrderTile(
+          child: Container(
+            color: Colors.green.withOpacity(0.2),
+            child: orders.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No hay pedidos (lista vacía)',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: orders.length,
+                    itemBuilder: (_, i) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _OrderTile(
                           order: orders[i],
                           onTap: () => context
                               .go('/admin/pedidos/${orders[i].id}'),
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ],
     );
@@ -238,37 +255,6 @@ class _OrderTile extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.receipt_long_outlined,
-                size: 64, color: AppColors.textMuted),
-            const SizedBox(height: 16),
-            Text(
-              'Sin pedidos',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Los pedidos aparecerán acá cuando los clientes compren.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
           ],
         ),

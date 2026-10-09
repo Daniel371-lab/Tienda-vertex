@@ -77,10 +77,10 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
                           onTap: () => ctrl.setCategory(c.id),
                         ),
                       const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('Solo activos'),
+                      _CategoryChip(
+                        label: 'Solo activos',
                         selected: state.showOnlyActive,
-                        onSelected: (_) => ctrl.toggleOnlyActive(),
+                        onTap: ctrl.toggleOnlyActive,
                       ),
                     ],
                   ),
@@ -152,7 +152,8 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: const Text(
               'Nuevo producto',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -214,7 +215,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
     );
     if (draft == null || !mounted) return;
 
-    // Navegar al formulario con los datos precargados.
     context.go('/admin/productos/nuevo', extra: draft);
   }
 
@@ -243,10 +243,27 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -348,7 +365,8 @@ class _ProductTile extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.15),
+                                color:
+                                    AppColors.primary.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
