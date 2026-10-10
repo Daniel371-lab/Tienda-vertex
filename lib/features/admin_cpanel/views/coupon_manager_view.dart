@@ -20,38 +20,48 @@ class _CouponManagerViewState extends ConsumerState<CouponManagerView> {
     final state = ref.watch(adminCouponsControllerProvider);
     final ctrl = ref.read(adminCouponsControllerProvider.notifier);
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      body: state.isLoading && state.coupons.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : state.coupons.isEmpty
-              ? const _EmptyState()
-              : RefreshIndicator(
-                  onRefresh: ctrl.load,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: state.coupons.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _CouponTile(
-                      coupon: state.coupons[i],
-                      onEdit: () => _showForm(state.coupons[i]),
-                      onToggleActive: () =>
-                          ctrl.toggleActive(state.coupons[i]),
-                      onDelete: () => _confirmDelete(state.coupons[i]),
-                    ),
-                  ),
-                ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        onPressed: () => _showForm(null),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
-          'Nuevo cupón',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+    // NOTA: Sin Scaffold propio. AdminShellView ya provee el Scaffold.
+    return Stack(
+      children: [
+        if (state.isLoading && state.coupons.isEmpty)
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          )
+        else if (state.coupons.isEmpty)
+          const _EmptyState()
+        else
+          RefreshIndicator(
+            onRefresh: ctrl.load,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+              itemCount: state.coupons.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, i) => _CouponTile(
+                coupon: state.coupons[i],
+                onEdit: () => _showForm(state.coupons[i]),
+                onToggleActive: () =>
+                    ctrl.toggleActive(state.coupons[i]),
+                onDelete: () => _confirmDelete(state.coupons[i]),
+              ),
+            ),
+          ),
+
+        // FAB manual dentro del Stack.
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton.extended(
+            backgroundColor: AppColors.primary,
+            onPressed: () => _showForm(null),
+            icon: const Icon(Icons.add_rounded, color: Colors.white),
+            label: const Text(
+              'Nuevo cupón',
+              style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -72,43 +82,35 @@ class _CouponManagerViewState extends ConsumerState<CouponManagerView> {
 
     if (!mounted) return;
 
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(existing == null
-              ? 'Cupón creado'
-              : 'Cupón actualizado'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? (existing == null ? 'Cupón creado' : 'Cupón actualizado')
+              : (ref.read(adminCouponsControllerProvider).error ??
+                  'No se pudo guardar'),
         ),
-      );
-    } else {
-      final err = ref.read(adminCouponsControllerProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(err ?? 'No se pudo guardar'),
-          backgroundColor: AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+        backgroundColor: ok ? AppColors.success : AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _confirmDelete(Coupon c) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Text('Eliminar cupón "${c.code}"'),
         content: const Text(
           '¿Confirmás eliminar este cupón? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text(
               'Eliminar',
               style: TextStyle(color: AppColors.danger),
@@ -117,22 +119,25 @@ class _CouponManagerViewState extends ConsumerState<CouponManagerView> {
         ],
       ),
     );
+
     if (ok != true) return;
+    if (!mounted) return;
 
     final result = await ref
         .read(adminCouponsControllerProvider.notifier)
         .deleteCoupon(c.id);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result ? 'Cupón eliminado' : 'No se pudo eliminar'),
-          backgroundColor:
-              result ? AppColors.success : AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text(result ? 'Cupón eliminado' : 'No se pudo eliminar'),
+        backgroundColor:
+            result ? AppColors.success : AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
 
@@ -213,7 +218,7 @@ class _CouponTile extends StatelessWidget {
               Row(
                 children: [
                   if (coupon.maxUses > 0) ...[
-                    Icon(Icons.people_outline_rounded,
+                    const Icon(Icons.people_outline_rounded,
                         size: 13, color: AppColors.textMuted),
                     const SizedBox(width: 4),
                     Text(
@@ -226,7 +231,7 @@ class _CouponTile extends StatelessWidget {
                     const SizedBox(width: 12),
                   ],
                   if (coupon.validUntil != null) ...[
-                    Icon(Icons.schedule_rounded,
+                    const Icon(Icons.schedule_rounded,
                         size: 13, color: AppColors.textMuted),
                     const SizedBox(width: 4),
                     Text(
@@ -297,9 +302,7 @@ class _CouponTile extends StatelessWidget {
       parts.add('${CurrencyFormatter.format(c.discountAmount)} de descuento');
     }
     if (c.minPurchase > 0) {
-      parts.add(
-        'mínimo ${CurrencyFormatter.format(c.minPurchase)}',
-      );
+      parts.add('mínimo ${CurrencyFormatter.format(c.minPurchase)}');
     }
     return parts.join(' · ');
   }
@@ -356,7 +359,7 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
   final _minCtrl = TextEditingController();
   final _maxUsesCtrl = TextEditingController();
 
-  String _discountType = 'percent'; // 'percent' | 'amount'
+  String _discountType = 'percent';
   bool _isActive = true;
   DateTime? _validUntil;
 
@@ -441,9 +444,7 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                     TextFormField(
                       controller: _codeCtrl,
                       textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
-                        hintText: 'VERTEX10',
-                      ),
+                      decoration: const InputDecoration(hintText: 'VERTEX10'),
                       validator: (v) {
                         if (v == null || v.trim().length < 3) {
                           return 'Mínimo 3 caracteres';
@@ -452,7 +453,6 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       },
                     ),
                     const SizedBox(height: 20),
-
                     _label(context, 'Tipo de descuento'),
                     Row(
                       children: [
@@ -478,7 +478,6 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       ],
                     ),
                     const SizedBox(height: 16),
-
                     if (_discountType == 'percent') ...[
                       _label(context, 'Porcentaje (%)'),
                       TextFormField(
@@ -509,17 +508,14 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       ),
                     ],
                     const SizedBox(height: 16),
-
                     _label(context, 'Compra mínima (₲)'),
                     TextFormField(
                       controller: _minCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: 'Opcional',
-                      ),
+                      decoration:
+                          const InputDecoration(hintText: 'Opcional'),
                     ),
                     const SizedBox(height: 16),
-
                     _label(context, 'Máximo de usos'),
                     TextFormField(
                       controller: _maxUsesCtrl,
@@ -529,7 +525,6 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     _label(context, 'Fecha de vencimiento'),
                     InkWell(
                       onTap: _pickDate,
@@ -572,7 +567,6 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.surface,
@@ -581,14 +575,12 @@ class _CouponFormSheetState extends State<_CouponFormSheet> {
                       ),
                       child: SwitchListTile(
                         title: const Text('Cupón activo'),
-                        subtitle:
-                            const Text('Los clientes pueden usarlo'),
+                        subtitle: const Text('Los clientes pueden usarlo'),
                         value: _isActive,
                         onChanged: (v) => setState(() => _isActive = v),
                       ),
                     ),
                     const SizedBox(height: 28),
-
                     SizedBox(
                       height: 52,
                       child: FilledButton.icon(

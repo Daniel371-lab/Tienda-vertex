@@ -1,15 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../ai/gemini_service.dart';
 import '../analytics/analytics_service.dart';
+import '../cloudinary/cloudinary_service.dart';
 import '../whatsapp/whatsapp_service.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
-import 'storage_service.dart';
 
 // ── Instancias Firebase ────────────────────────────────────────
 
@@ -19,10 +18,6 @@ final firestoreInstanceProvider = Provider<FirebaseFirestore>(
 
 final authInstanceProvider = Provider<FirebaseAuth>(
   (ref) => FirebaseAuth.instance,
-);
-
-final storageInstanceProvider = Provider<FirebaseStorage>(
-  (ref) => FirebaseStorage.instance,
 );
 
 final analyticsInstanceProvider = Provider<FirebaseAnalytics>(
@@ -47,18 +42,15 @@ final whatsappServiceProvider = Provider<WhatsappService>(
   (ref) => const WhatsappService(),
 );
 
-final storageServiceProvider = Provider<StorageService>(
-  (ref) => StorageService(ref.watch(storageInstanceProvider)),
+final cloudinaryServiceProvider = Provider<CloudinaryService>(
+  (ref) => const CloudinaryService(),
 );
 
-/// Gemini se construye dinámicamente con la API key de settings.
-/// La key se lee desde Firestore `settings/store.geminiApiKey`.
 final geminiServiceProvider = Provider<GeminiService>((ref) {
-  // Se inicializa vacío. El controller lo configura al leer settings.
   return GeminiService('');
 });
 
-// ── Estado de auth (para guard del cPanel) ────────────────────
+// ── Estado de auth ────────────────────────────────────────────
 
 final authStateProvider = StreamProvider<User?>(
   (ref) => ref.watch(authServiceProvider).authStateChanges,
@@ -66,7 +58,6 @@ final authStateProvider = StreamProvider<User?>(
 
 // ── Settings reactivos ────────────────────────────────────────
 
-/// Se usa para que el cPanel lea los settings una vez y los comparta.
 final storeSettingsProvider = FutureProvider((ref) async {
   return ref.watch(firestoreServiceProvider).fetchSettings();
 });

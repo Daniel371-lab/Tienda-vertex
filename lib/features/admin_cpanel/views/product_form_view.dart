@@ -401,46 +401,46 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
     );
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final picker = ImagePicker();
-      final files = await picker.pickMultiImage(
-        maxWidth: 1600,
-        maxHeight: 2400,
-        imageQuality: 85,
+Future<void> _pickImage() async {
+  try {
+    final picker = ImagePicker();
+    final files = await picker.pickMultiImage(
+      maxWidth: 1600,
+      maxHeight: 2400,
+      imageQuality: 85,
+    );
+    if (files.isEmpty) return;
+
+    setState(() => _uploadingImage = true);
+
+    final cloudinary = ref.read(cloudinaryServiceProvider);
+    final pid = widget.productId ??
+        'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+    for (final f in files) {
+      if (_images.length >= 6) break;
+      final bytes = await f.readAsBytes();
+      final url = await cloudinary.uploadProductImage(
+        productId: pid,
+        bytes: bytes,
+        filename: f.name,
       );
-      if (files.isEmpty) return;
+      _images.add(url);
+    }
 
-      setState(() => _uploadingImage = true);
-
-      final storage = ref.read(storageServiceProvider);
-      final pid = widget.productId ??
-          'temp_${DateTime.now().millisecondsSinceEpoch}';
-
-      for (final f in files) {
-        if (_images.length >= 6) break;
-        final bytes = await f.readAsBytes();
-        final url = await storage.uploadProductImage(
-          productId: pid,
-          bytes: bytes,
-          filename: f.name,
-        );
-        _images.add(url);
-      }
-
-      if (mounted) setState(() => _uploadingImage = false);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _uploadingImage = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al subir imagen: $e'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-      }
+    if (mounted) setState(() => _uploadingImage = false);
+  } catch (e) {
+    if (mounted) {
+      setState(() => _uploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al subir imagen: $e'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
   }
+}
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
