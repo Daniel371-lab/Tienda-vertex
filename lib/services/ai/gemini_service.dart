@@ -50,7 +50,7 @@ class GeminiService {
 
   final String _apiKey;
 
-  static const String _model = 'gemini-2.5-flash';
+  static const String _model = 'gemini-flash-latest';
 
   static const String _prompt = '''
 Analizá la o las capturas de pantalla de un producto de e-commerce y extraé su información.
