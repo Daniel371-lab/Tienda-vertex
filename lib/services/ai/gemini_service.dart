@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:google_generative_ai/google_generative_ai.dart';
 
-/// Borrador de producto que devuelve la IA tras analizar una captura.
+/// Borrador de producto que devuelve la IA tras analizar las capturas.
 class ProductDraft {
   const ProductDraft({
     this.title = '',
@@ -50,14 +50,18 @@ class GeminiService {
 
   final String _apiKey;
 
+  static const String _model = 'gemini-2.5-flash';
+
   static const String _prompt = '''
-Analizá esta captura de pantalla de un producto de e-commerce y extraé su información.
+Analizá la o las capturas de pantalla de un producto de e-commerce y extraé su información.
+
+Podés recibir 1 o 2 imágenes del mismo producto (por ejemplo, la parte superior con el título y precio, y la parte inferior con la descripción). Combiná la información de todas las imágenes.
 
 Devolvé ÚNICAMENTE un JSON válido (sin texto antes ni después, sin bloques de código) con esta estructura exacta:
 
 {
   "title": "Nombre completo del producto con marca y modelo si es visible",
-  "description": "Descripción breve con las características principales",
+  "description": "Descripción breve pero completa del producto. Si la captura no incluye una descripción textual, generá una descripción atractiva y coherente basada en la marca, tipo de producto y características visibles. Debe tener entre 40 y 120 palabras.",
   "price": 280000,
   "category": "una de: perfumes, relojes, joyeria, electronica",
   "subcategory": "subcategoría específica si es evidente (ej: arabes, masculinos, deportivos)",
@@ -69,26 +73,31 @@ Reglas:
 - El precio SIEMPRE en número entero, sin puntos ni símbolos (Guaraníes).
 - Si no encontrás algún campo, dejalo como string vacío o array vacío.
 - "category" debe ser una de las 4 opciones indicadas.
-- Los tags son palabras clave útiles para búsqueda.
+- Los tags son palabras clave útiles para búsqueda (3 a 5 tags).
+- Si no hay descripción visible en ninguna captura, GENERÁ una descripción profesional y atractiva basada en lo que sabés del producto.
 ''';
 
-  /// Analiza una imagen y devuelve el borrador del producto.
-  Future<ProductDraft> extractFromImage(Uint8List imageBytes) async {
+  /// Analiza 1 o 2 imágenes y devuelve el borrador del producto.
+  /// Todas las imágenes se envían en un solo request.
+  Future<ProductDraft> extractFromImages(List<Uint8List> images) async {
     if (_apiKey.isEmpty) {
       throw Exception('Falta configurar la API Key de Gemini en Ajustes.');
     }
+    if (images.isEmpty) {
+      throw Exception('No se recibió ninguna imagen.');
+    }
 
     final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: _model,
       apiKey: _apiKey,
     );
 
-    final content = [
-      Content.multi([
-        TextPart(_prompt),
-        DataPart('image/jpeg', imageBytes),
-      ]),
-    ];
+    final parts = <Part>[TextPart(_prompt)];
+    for (final img in images) {
+      parts.add(DataPart('image/jpeg', img));
+    }
+
+    final content = [Content.multi(parts)];
 
     final response = await model.generateContent(content);
     final text = response.text ?? '';
@@ -107,7 +116,6 @@ Reglas:
     }
   }
 
-  /// Limpia el texto por si la IA devuelve el JSON dentro de bloques ```
   String _cleanJson(String raw) {
     var clean = raw.trim();
     if (clean.startsWith('```')) {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Marca gráfica de Tienda Vertex.
+/// Marca gráfica de Tienda Vertex: logo PNG + wordmark.
 class VertexLogo extends StatelessWidget {
   const VertexLogo({
     super.key,
@@ -21,10 +22,41 @@ class VertexLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/logo_vertex.png',
-      height: markSize * 1.4,
-      fit: BoxFit.contain,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          'assets/images/logo_vertex.png',
+          height: markSize * 1.4,
+          fit: BoxFit.contain,
+        ),
+        if (showWordmark) ...[
+          SizedBox(width: markSize * 0.5),
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: wordmarkSize * 0.62,
+                fontWeight: FontWeight.w600,
+                letterSpacing: wordmarkSize * 0.14,
+                color: textColor,
+              ),
+              children: [
+                const TextSpan(text: 'TIENDA '),
+                TextSpan(
+                  text: 'VERTEX',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: wordmarkSize * 0.62,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: wordmarkSize * 0.14,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
