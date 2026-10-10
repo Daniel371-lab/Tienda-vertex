@@ -9,23 +9,15 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'firebase_options.dart';
-import 'services/firebase/firebase_providers.dart';
-import 'services/seed/seed_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa los datos de locale español para formateo de fechas.
   await initializeDateFormatting('es_PY');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  // Carga datos de prueba la primera vez (solo si Firestore está vacío).
-  final container = ProviderContainer();
-  await SeedService(container.read(firestoreInstanceProvider)).runIfNeeded();
-  container.dispose();
 
   FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 

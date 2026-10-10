@@ -123,6 +123,10 @@ class WhatsappService {
   }
 
   /// Construye el mensaje que se envía al cliente cuando cambia el estado.
+  ///
+  /// Los textos son desde la perspectiva del cliente:
+  /// la tienda es el vendedor y no se mencionan proveedores,
+  /// transportadoras específicas ni números de guía.
   String buildStatusMessage(Order order, OrderStatus newStatus) {
     final name = order.customerName.split(' ').first;
     final id = order.shortId;
@@ -132,41 +136,44 @@ class WhatsappService {
         return 'Hola $name 👋\n\n'
             '✅ Confirmamos la recepción de tu pago del pedido #$id '
             'por ${CurrencyFormatter.format(order.total)}.\n\n'
-            'Ya estamos procesando tu compra. Te avisaremos cuando '
-            'esté en camino.\n\n'
+            'Estamos preparando tu compra. Te avisamos cuando esté en camino.\n\n'
             'Gracias por confiar en Tienda Vertex.';
 
       case OrderStatus.comprandoProveedor:
+        // Este estado es interno. Al cliente se le comunica como
+        // "preparando tu pedido" sin más detalle.
         return 'Hola $name 👋\n\n'
-            '📦 Estamos adquiriendo tu producto en el proveedor.\n\n'
-            'Pedido: #$id\n'
-            'Te avisaremos apenas lo tengamos listo para despachar.';
+            '📦 Estamos preparando tu pedido #$id.\n\n'
+            'Te avisamos en cuanto esté listo para el envío.';
 
       case OrderStatus.listoDespacho:
         return 'Hola $name 👋\n\n'
             '✅ Tu pedido #$id ya está listo y empacado.\n\n'
-            'Lo despachamos en las próximas horas. Te enviamos el '
-            'número de guía cuando lo tengamos.';
+            'En las próximas horas lo enviamos a tu dirección. '
+            'Te avisamos cuando salga.';
 
       case OrderStatus.despachado:
         return 'Hola $name 👋\n\n'
-            '🚚 Tu pedido #$id ya fue despachado.\n\n'
-            'Llega en 1 a 2 días hábiles. Te contactamos cuando '
-            'esté en la zona de entrega.';
+            '🚚 Tu pedido #$id ya está en camino.\n\n'
+            'En breve lo recibís en ${order.city}. Si necesitamos '
+            'contactarte para coordinar la entrega, lo haremos por este medio.\n\n'
+            'Gracias por tu paciencia.';
 
       case OrderStatus.entregado:
         return 'Hola $name 👋\n\n'
             '🎉 Tu pedido #$id fue entregado.\n\n'
-            '¡Gracias por tu compra! Si tenés algún comentario o '
+            '¡Gracias por tu compra! Si tenés algún comentario, duda o '
             'problema, respondé este mensaje.';
 
       case OrderStatus.cancelado:
         return 'Hola $name 👋\n\n'
             'Tu pedido #$id fue cancelado.\n\n'
-            'Si realizaste un pago, procesaremos el reembolso en '
-            'las próximas 48 horas hábiles.';
+            'Si ya realizaste un pago, procesaremos el reembolso en '
+            'las próximas 48 horas hábiles.\n\n'
+            'Cualquier consulta, quedamos a disposición.';
 
       case OrderStatus.pendientePago:
+        // Este mensaje no se envía nunca al cliente desde este flujo.
         return '';
     }
   }
