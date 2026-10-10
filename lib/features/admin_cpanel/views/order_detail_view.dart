@@ -36,19 +36,17 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       final o = await ref
           .read(firestoreServiceProvider)
           .findOrderById(widget.orderId);
-      if (mounted) {
-        setState(() {
-          _order = o;
-          _loading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _order = o;
+        _loading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'No se pudo cargar el pedido: $e';
-          _loading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _error = 'No se pudo cargar el pedido: $e';
+        _loading = false;
+      });
     }
   }
 
@@ -56,7 +54,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
@@ -110,12 +110,15 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Estado actual ──────────────────────────────
             Center(child: OrderStatusBadge(status: o.status)),
             const SizedBox(height: 20),
 
             // ── Acciones según estado ──────────────────────
-            _StatusActions(order: o, onUpdated: _load),
+            _StatusActions(
+              order: o,
+              onChangeStatus: _changeStatus,
+              onCancel: () => _changeStatus(OrderStatus.cancelado),
+            ),
 
             const SizedBox(height: 20),
 
@@ -138,15 +141,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                 ),
                 _Field(label: 'Dirección', value: o.address),
                 if (o.holderName != null && o.holderName!.isNotEmpty)
-                  _Field(
-                    label: 'Titular del pago',
-                    value: o.holderName!,
-                  ),
+                  _Field(label: 'Titular del pago', value: o.holderName!),
                 if (o.sourceBank != null && o.sourceBank!.isNotEmpty)
-                  _Field(
-                    label: 'Banco emisor',
-                    value: o.sourceBank!,
-                  ),
+                  _Field(label: 'Banco emisor', value: o.sourceBank!),
               ],
             ),
 
@@ -250,6 +247,98 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Lógica de cambio de estado — AHORA EN EL STATE
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> _changeStatus(OrderStatus newStatus) async {
+    final o = _order;
+    if (o == null) return;
+
+    // Paso 1: confirmación.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text('Marcar como "${newStatus.label}"'),
+        content: const Text(
+          'Se guardará el nuevo estado y podrás enviar un mensaje '
+          'al cliente por WhatsApp con la actualización.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Paso 2: actualizar en Firestore.
+    final ctrl = ref.read(adminOrdersControllerProvider.notifier);
+    final ok = await ctrl.updateStatus(
+      orderId: o.id,
+      newStatus: newStatus,
+    );
+
+    if (!mounted) return;
+
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo actualizar el estado'),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Paso 3: recargar el pedido local.
+    await _load();
+    if (!mounted) return;
+
+    // Paso 4: preguntar si quiere avisar por WhatsApp.
+    final sendWa = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Estado actualizado'),
+        content: Text(
+          '¿Querés avisarle al cliente por WhatsApp que su pedido '
+          'ahora está "${newStatus.label}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('Después'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            icon: const Icon(Icons.chat_rounded, size: 18),
+            label: const Text('Enviar WhatsApp'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.whatsapp,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (sendWa == true && mounted) {
+      final wa = ref.read(whatsappServiceProvider);
+      final updated = o.copyWith(status: newStatus);
+      await wa.contactCustomerAboutStatus(
+        order: updated,
+        newStatus: newStatus,
+      );
+    }
+  }
+
   Future<void> _contactViaWhatsapp(Order o) async {
     final wa = ref.read(whatsappServiceProvider);
     final message = wa.buildStatusMessage(
@@ -268,7 +357,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   Future<void> _confirmDelete(Order o) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Eliminar pedido'),
         content: Text(
           '¿Eliminar el pedido #${o.shortId} definitivamente?\n\n'
@@ -276,11 +365,11 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text(
               'Eliminar',
               style: TextStyle(color: AppColors.danger),
@@ -290,7 +379,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       ),
     );
 
-    if (ok != true) return;
+    if (ok != true || !mounted) return;
 
     final result = await ref
         .read(adminOrdersControllerProvider.notifier)
@@ -312,16 +401,22 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Acciones de cambio de estado
+// Acciones (ahora con callbacks del State)
 // ─────────────────────────────────────────────────────────────
 
-class _StatusActions extends ConsumerWidget {
-  const _StatusActions({required this.order, required this.onUpdated});
+class _StatusActions extends StatelessWidget {
+  const _StatusActions({
+    required this.order,
+    required this.onChangeStatus,
+    required this.onCancel,
+  });
+
   final Order order;
-  final VoidCallback onUpdated;
+  final void Function(OrderStatus) onChangeStatus;
+  final VoidCallback onCancel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final next = _nextStatus(order.status);
     final canCancel = order.status != OrderStatus.entregado &&
         order.status != OrderStatus.cancelado;
@@ -332,7 +427,7 @@ class _StatusActions extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () => _changeStatus(context, ref, next),
+              onPressed: () => onChangeStatus(next),
               icon: Icon(_iconFor(next)),
               label: Text(_labelFor(next)),
             ),
@@ -342,8 +437,7 @@ class _StatusActions extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () =>
-                  _changeStatus(context, ref, OrderStatus.cancelado),
+              onPressed: onCancel,
               icon: const Icon(Icons.cancel_outlined,
                   size: 18, color: AppColors.danger),
               label: const Text(
@@ -408,90 +502,6 @@ class _StatusActions extends ConsumerWidget {
         return Icons.verified_outlined;
       default:
         return Icons.arrow_forward_rounded;
-    }
-  }
-
-  Future<void> _changeStatus(
-    BuildContext context,
-    WidgetRef ref,
-    OrderStatus newStatus,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Marcar como "${newStatus.label}"'),
-        content: const Text(
-          'Se guardará el nuevo estado y podrás enviar un mensaje al '
-          'cliente por WhatsApp con la actualización.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final ctrl = ref.read(adminOrdersControllerProvider.notifier);
-    final ok = await ctrl.updateStatus(
-      orderId: order.id,
-      newStatus: newStatus,
-    );
-
-    if (!context.mounted) return;
-
-    if (ok) {
-      // Preguntar si quiere enviar WhatsApp.
-      final sendWa = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Estado actualizado'),
-          content: Text(
-            '¿Querés avisarle al cliente por WhatsApp que su pedido '
-            'ahora está "${newStatus.label}"?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Después'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.chat_rounded, size: 18),
-              label: const Text('Enviar WhatsApp'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.whatsapp,
-              ),
-            ),
-          ],
-        ),
-      );
-
-      if (sendWa == true && context.mounted) {
-        final wa = ref.read(whatsappServiceProvider);
-        final updated = order.copyWith(status: newStatus);
-        await wa.contactCustomerAboutStatus(
-          order: updated,
-          newStatus: newStatus,
-        );
-      }
-
-      onUpdated();
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo actualizar el estado'),
-          backgroundColor: AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 }
@@ -672,7 +682,8 @@ class _SummaryRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+              color:
+                  bold ? AppColors.textPrimary : AppColors.textSecondary,
             ),
           ),
           Text(
