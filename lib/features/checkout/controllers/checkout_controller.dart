@@ -7,6 +7,7 @@ class CheckoutState {
     this.department,
     this.city,
     this.address = '',
+    this.reference = '',
     this.couponCode = '',
     this.appliedCouponCode,
     this.discountAmount = 0,
@@ -22,6 +23,7 @@ class CheckoutState {
   final String? department;
   final String? city;
   final String address;
+  final String reference;
   final String couponCode;
   final String? appliedCouponCode;
   final int discountAmount;
@@ -39,6 +41,7 @@ class CheckoutState {
     String? department,
     String? city,
     String? address,
+    String? reference,
     String? couponCode,
     String? appliedCouponCode,
     int? discountAmount,
@@ -57,6 +60,7 @@ class CheckoutState {
       department: department ?? this.department,
       city: city ?? this.city,
       address: address ?? this.address,
+      reference: reference ?? this.reference,
       couponCode: couponCode ?? this.couponCode,
       appliedCouponCode:
           clearCoupon ? null : (appliedCouponCode ?? this.appliedCouponCode),
@@ -90,6 +94,9 @@ class CheckoutController extends StateNotifier<CheckoutState> {
 
   void setAddress(String v) =>
       state = state.copyWith(address: v, clearError: true);
+
+  void setReference(String v) =>
+      state = state.copyWith(reference: v, clearError: true);
 
   void setHolderName(String v) =>
       state = state.copyWith(holderName: v, clearError: true);

@@ -64,6 +64,7 @@ class Order {
     required this.items,
     required this.total,
     required this.status,
+    this.reference,
     this.subtotal = 0,
     this.discount = 0,
     this.couponCode,
@@ -82,19 +83,18 @@ class Order {
   final String department;
   final String city;
   final String address;
+
+  /// Referencia adicional para ubicar la dirección (barrio, edificio, etc.)
+  final String? reference;
+
   final List<OrderItem> items;
   final int subtotal;
   final int discount;
   final String? couponCode;
   final int total;
   final OrderStatus status;
-
-  /// Nombre del titular de la cuenta bancaria desde la que transfirió.
   final String? holderName;
-
-  /// Banco desde el que realizó la transferencia.
   final String? sourceBank;
-
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -118,6 +118,7 @@ class Order {
         department: map['department'] as String? ?? '',
         city: map['city'] as String? ?? '',
         address: map['address'] as String? ?? '',
+        reference: map['reference'] as String?,
         items: ((map['items'] as List?) ?? const [])
             .whereType<Map>()
             .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e)))
@@ -142,6 +143,7 @@ class Order {
         'department': department,
         'city': city,
         'address': address,
+        'reference': reference,
         'items': items.map((e) => e.toMap()).toList(),
         'subtotal': subtotal,
         'discount': discount,
@@ -165,6 +167,7 @@ class Order {
     String? department,
     String? city,
     String? address,
+    String? reference,
     List<OrderItem>? items,
     int? subtotal,
     int? discount,
@@ -184,6 +187,7 @@ class Order {
         department: department ?? this.department,
         city: city ?? this.city,
         address: address ?? this.address,
+        reference: reference ?? this.reference,
         items: items ?? this.items,
         subtotal: subtotal ?? this.subtotal,
         discount: discount ?? this.discount,

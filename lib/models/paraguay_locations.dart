@@ -1,11 +1,45 @@
-/// Departamentos y ciudades de Paraguay para el checkout.
-/// Cada departamento trae su lista de ciudades/distritos principales.
+/// Departamentos y localidades habilitadas para envío.
 class ParaguayLocations {
   const ParaguayLocations._();
 
   static const Map<String, List<String>> data = {
+    'Alto Paraná': [
+      'Cedrales',
+      'Ciudad del Este',
+      'Hernandarias',
+      'Juan León Mallorquín',
+      'Minga Guazú',
+      'Presidente Franco',
+      'San Alberto',
+      'Santa Rita',
+      'Santa Rosa del Monday',
+    ],
+    'Amambay': [
+      'Pedro Juan Caballero',
+    ],
     'Asunción': [
       'Asunción',
+    ],
+    'Caaguazú': [
+      'Caaguazú',
+      'Carayaó',
+      'Coronel Oviedo',
+      'Doctor Juan Manuel Frutos',
+    ],
+    'Caazapá': [
+      'Caazapá',
+      'Doctor Moisés Bertoni',
+      'General Higinio Morínigo',
+      'Maciel',
+      'San Juan Nepomuceno',
+    ],
+    'Canindeyú': [
+      'Curuguaty',
+      'Katueté',
+      'La Paloma',
+      'Nueva Esperanza',
+      'Salto del Guairá',
+      'Yasy Cañy',
     ],
     'Central': [
       'Areguá',
@@ -20,7 +54,6 @@ class ParaguayLocations {
       'Luque',
       'Mariano Roque Alonso',
       'Ñemby',
-      'Nueva Italia',
       'San Antonio',
       'San Lorenzo',
       'Villa Elisa',
@@ -28,123 +61,103 @@ class ParaguayLocations {
       'Ypacaraí',
       'Ypané',
     ],
-    'Alto Paraná': [
-      'Ciudad del Este',
-      'Hernandarias',
-      'Minga Guazú',
-      'Presidente Franco',
-      'Santa Rita',
-      'Doctor Juan León Mallorquín',
-      'Naranjal',
-    ],
-    'Itapúa': [
-      'Encarnación',
-      'Cambyretá',
-      'Capitán Miranda',
-      'Hohenau',
-      'Obligado',
-      'Trinidad',
-      'Bella Vista',
-      'General Delgado',
-    ],
-    'Caaguazú': [
-      'Coronel Oviedo',
-      'Caaguazú',
-      'Doctor Juan Manuel Frutos',
-      'Repatriación',
-      'Santa Rosa del Mbutuy',
-    ],
-    'Amambay': [
-      'Pedro Juan Caballero',
-      'Bella Vista',
-      'Capitán Bado',
-      'Karapaí',
-    ],
-    'Canindeyú': [
-      'Salto del Guairá',
-      'Curuguaty',
-      'Villa Ygatimí',
-      'La Paloma',
-    ],
     'Concepción': [
       'Concepción',
       'Horqueta',
-      'Yby Yaú',
-      'Loreto',
-      'San Carlos',
-    ],
-    'San Pedro': [
-      'San Pedro del Ycuamandiyú',
-      'Santa Rosa del Aguaray',
-      'Choré',
-      'Lima',
-      'Nueva Germania',
     ],
     'Cordillera': [
-      'Caacupé',
-      'San Bernardino',
+      'Altos',
+      'Arroyos y Esteros',
       'Atyrá',
-      'Tobatí',
-      'Paraguarí',
+      'Caacupé',
+      'Caraguatay',
+      'Eusebio Ayala',
       'Piribebuy',
-    ],
-    'Paraguarí': [
-      'Paraguarí',
-      'Carapeguá',
-      'Yaguarón',
-      'Quiindy',
-      'Acahay',
-    ],
-    'Misiones': [
-      'San Juan Bautista',
-      'Ayolas',
-      'Santa Rosa',
-      'Santiago',
-      'San Ignacio',
+      'San Bernardino',
+      'Tobatí',
+      'Valenzuela',
     ],
     'Guairá': [
-      'Villarrica',
-      'Coronel Oviedo',
+      'Borja',
       'Mauricio José Troche',
-      'Independencia',
+      'Villarrica',
     ],
-    'Caazapá': [
-      'Caazapá',
-      'San Juan Nepomuceno',
-      'Abaí',
-      'Yuty',
+    'Itapúa': [
+      'Bella Vista',
+      'Cambyretá',
+      'Carmen del Paraná',
+      'Colonia Carlos Antonio López',
+      'Coronel Bogado',
+      'Encarnación',
+      'Hohenau',
+      'Jesús',
+      'José Leandro Oviedo',
+      'Mayor Otaño',
+      'Natalio',
+      'Obligado',
+    ],
+    'Misiones': [
+      'Ayolas',
+      'San Ignacio',
+      'San Juan Bautista',
+      'Santa Rosa',
     ],
     'Ñeembucú': [
       'Pilar',
-      'Alberdi',
       'Villa Oliva',
-      'Laureles',
+    ],
+    'Paraguarí': [
+      'Carapeguá',
+      'Escobar',
+      'Paraguarí',
+      'Quiindy',
+      'Yaguarón',
     ],
     'Presidente Hayes': [
       'Villa Hayes',
-      'Benjamín Aceval',
-      'Nanawa',
-      'Puerto Pinasco',
-    ],
-    'Boquerón': [
-      'Filadelfia',
-      'Loma Plata',
-      'Mariscal Estigarribia',
-    ],
-    'Alto Paraguay': [
-      'Fuerte Olimpo',
-      'Puerto Casado',
-      'Bahía Negra',
     ],
   };
 
-  /// Lista de departamentos ordenada alfabéticamente.
-  static List<String> get departments =>
-      data.keys.toList()..sort();
+  /// Ciudades que tienen Punto de Venta AEX habilitado.
+  static const Set<String> citiesWithPickup = {
+    // Asunción
+    'Asunción',
+    // Central
+    'Guarambaré',
+    'Lambaré',
+    'Mariano Roque Alonso',
+    'Villeta',
+    // Alto Paraná
+    'Ciudad del Este',
+    'Hernandarias',
+    'Minga Guazú',
+    // Amambay
+    'Pedro Juan Caballero',
+    // Caaguazú
+    'Caaguazú',
+    'Coronel Oviedo',
+    'Doctor Juan Manuel Frutos',
+    // Canindeyú
+    'Salto del Guairá',
+    // Concepción
+    'Concepción',
+    // Cordillera
+    'Caacupé',
+    // Guairá
+    'Mauricio José Troche',
+    // Itapúa
+    'Encarnación',
+    // Ñeembucú
+    'Pilar',
+  };
 
-  /// Ciudades de un departamento (o lista vacía si no existe).
+  static List<String> get departments => data.keys.toList()..sort();
+
   static List<String> citiesOf(String? department) {
     if (department == null) return const [];
     return data[department] ?? const [];
   }
+
+  /// ¿La ciudad tiene punto de venta AEX?
+  static bool hasPickup(String city) => citiesWithPickup.contains(city);
 }

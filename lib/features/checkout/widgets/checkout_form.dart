@@ -40,6 +40,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _referenceCtrl;
   late final TextEditingController _couponCtrl;
   late final TextEditingController _holderCtrl;
   bool _isValidatingCoupon = false;
@@ -51,6 +52,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     _nameCtrl = TextEditingController(text: s.fullName);
     _phoneCtrl = TextEditingController(text: s.phone);
     _addressCtrl = TextEditingController(text: s.address);
+    _referenceCtrl = TextEditingController(text: s.reference);
     _couponCtrl = TextEditingController(text: s.couponCode);
     _holderCtrl = TextEditingController(text: s.holderName);
   }
@@ -60,6 +62,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
+    _referenceCtrl.dispose();
     _couponCtrl.dispose();
     _holderCtrl.dispose();
     super.dispose();
@@ -125,27 +128,52 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
           child: DropdownButtonFormField<String>(
             value: state.city,
             isExpanded: true,
-            items: cities
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
+            items: cities.map((c) {
+              final hasPickup = ParaguayLocations.hasPickup(c);
+              return DropdownMenuItem<String>(
+                value: c,
+                child: Row(
+                  children: [
+                    Expanded(child: Text(c)),
+                    if (hasPickup) ...[
+                      const SizedBox(width: 8),
+                      const _AexPickupBadge(),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
             onChanged: state.department == null ? null : ctrl.setCity,
             decoration: InputDecoration(
               hintText: state.department == null
                   ? 'Elegí un departamento primero'
                   : 'Seleccionar ciudad',
-              prefixIcon: const Icon(Icons.location_city_outlined, size: 20),
+              prefixIcon:
+                  const Icon(Icons.location_city_outlined, size: 20),
             ),
           ),
         ),
         _Field(
-          label: AppStrings.fieldAddress,
+          label: 'Dirección',
           child: TextField(
             controller: _addressCtrl,
             maxLines: 2,
             onChanged: ctrl.setAddress,
             decoration: const InputDecoration(
-              hintText: 'Calle, número, referencia...',
+              hintText: 'Calle, número...',
               prefixIcon: Icon(Icons.home_outlined, size: 20),
+            ),
+          ),
+        ),
+        _Field(
+          label: 'Referencia (opcional)',
+          child: TextField(
+            controller: _referenceCtrl,
+            maxLines: 2,
+            onChanged: ctrl.setReference,
+            decoration: const InputDecoration(
+              hintText: 'Barrio, edificio, color de casa, referencia...',
+              prefixIcon: Icon(Icons.info_outline_rounded, size: 20),
             ),
           ),
         ),
@@ -283,6 +311,53 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
               ],
             ),
           ),
+
+        // ── MENSAJE INFORMATIVO (abajo de todo el formulario) ─
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textPrimary,
+                          height: 1.45,
+                        ),
+                    children: const [
+                      TextSpan(text: 'Las ciudades con el logo '),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: _AexPickupBadge(),
+                      ),
+                      TextSpan(
+                        text: ' tienen Punto de Entrega AEX. Si tu ciudad '
+                            'no está listada, escribinos por WhatsApp y '
+                            'coordinamos el retiro en el punto AEX más '
+                            'cercano a tu ubicación.',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -314,6 +389,50 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     } finally {
       if (mounted) setState(() => _isValidatingCoupon = false);
     }
+  }
+}
+
+/// Chip con el logo de AEX para indicar Punto de Entrega.
+class _AexPickupBadge extends StatelessWidget {
+  const _AexPickupBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: AppColors.border,
+          width: 0.8,
+        ),
+      ),
+      child: Image.asset(
+        'assets/images/logo_aex.png',
+        height: 14,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.storefront_outlined,
+              size: 11,
+              color: AppColors.primary,
+            ),
+            SizedBox(width: 3),
+            Text(
+              'PDV',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

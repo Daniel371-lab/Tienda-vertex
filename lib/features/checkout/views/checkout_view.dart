@@ -138,7 +138,8 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: checkout.isSubmitting ? null : _confirm,
+                        onPressed:
+                            checkout.isSubmitting ? null : _confirm,
                         icon: checkout.isSubmitting
                             ? const SizedBox(
                                 width: 16,
@@ -198,7 +199,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       return;
     }
     if (checkout.address.trim().length < 5) {
-      ctrl.setError('Ingresá una dirección o referencia válida.');
+      ctrl.setError('Ingresá una dirección válida.');
       return;
     }
     if (checkout.holderName.trim().length < 3) {
@@ -216,10 +217,15 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       final fs = ref.read(firestoreServiceProvider);
       final analytics = ref.read(analyticsServiceProvider);
 
-      final isBlocked = await fs.isPhoneBlacklisted(checkout.phone);
-      if (isBlocked) {
-        ctrl.setError(AppStrings.genericError);
-        return;
+      // ── Blacklist anti-fraude (best-effort) ────────────────
+      try {
+        final isBlocked = await fs.isPhoneBlacklisted(checkout.phone);
+        if (isBlocked) {
+          ctrl.setError(AppStrings.genericError);
+          return;
+        }
+      } catch (_) {
+        // Ignorar. No bloqueamos el pedido por no poder verificar.
       }
 
       final total =
@@ -242,6 +248,9 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         department: checkout.department!,
         city: checkout.city!,
         address: checkout.address.trim(),
+        reference: checkout.reference.trim().isEmpty
+            ? null
+            : checkout.reference.trim(),
         items: items,
         subtotal: cart.subtotal,
         discount: checkout.discountAmount,
@@ -271,6 +280,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         department: order.department,
         city: order.city,
         address: order.address,
+        reference: order.reference,
         items: order.items,
         subtotal: order.subtotal,
         discount: order.discount,
@@ -289,10 +299,8 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
       final nav = Navigator.of(context);
 
-      // Cerrar checkout.
       nav.pop();
 
-      // Abrir pantalla de datos de pago.
       Future.delayed(const Duration(milliseconds: 150), () {
         if (!mounted) return;
         showModalBottomSheet(

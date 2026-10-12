@@ -113,7 +113,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
             Center(child: OrderStatusBadge(status: o.status)),
             const SizedBox(height: 20),
 
-            // ── Acciones según estado ──────────────────────
             _StatusActions(
               order: o,
               onChangeStatus: _changeStatus,
@@ -122,7 +121,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 20),
 
-            // ── Datos del cliente ──────────────────────────
             _Section(
               title: 'Cliente',
               icon: Icons.person_outline_rounded,
@@ -140,6 +138,8 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                   value: '${o.city}, ${o.department}',
                 ),
                 _Field(label: 'Dirección', value: o.address),
+                if (o.reference != null && o.reference!.isNotEmpty)
+                  _Field(label: 'Referencia', value: o.reference!),
                 if (o.holderName != null && o.holderName!.isNotEmpty)
                   _Field(label: 'Titular del pago', value: o.holderName!),
                 if (o.sourceBank != null && o.sourceBank!.isNotEmpty)
@@ -149,7 +149,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 16),
 
-            // ── Ítems ──────────────────────────────────────
             _Section(
               title: 'Ítems (${o.itemCount})',
               icon: Icons.shopping_bag_outlined,
@@ -164,7 +163,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 16),
 
-            // ── Resumen de pago ────────────────────────────
             _Section(
               title: 'Pago',
               icon: Icons.receipt_outlined,
@@ -190,7 +188,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 16),
 
-            // ── Timeline ───────────────────────────────────
             _Section(
               title: 'Historial',
               icon: Icons.timeline_rounded,
@@ -212,7 +209,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 20),
 
-            // ── Botones inferiores ─────────────────────────
             Row(
               children: [
                 Expanded(
@@ -247,15 +243,10 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Lógica de cambio de estado — AHORA EN EL STATE
-  // ─────────────────────────────────────────────────────────
-
   Future<void> _changeStatus(OrderStatus newStatus) async {
     final o = _order;
     if (o == null) return;
 
-    // Paso 1: confirmación.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -279,7 +270,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
     if (confirmed != true || !mounted) return;
 
-    // Paso 2: actualizar en Firestore.
     final ctrl = ref.read(adminOrdersControllerProvider.notifier);
     final ok = await ctrl.updateStatus(
       orderId: o.id,
@@ -299,11 +289,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       return;
     }
 
-    // Paso 3: recargar el pedido local.
     await _load();
     if (!mounted) return;
 
-    // Paso 4: preguntar si quiere avisar por WhatsApp.
     final sendWa = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -399,10 +387,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     }
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Acciones (ahora con callbacks del State)
-// ─────────────────────────────────────────────────────────────
 
 class _StatusActions extends StatelessWidget {
   const _StatusActions({
@@ -505,10 +489,6 @@ class _StatusActions extends StatelessWidget {
     }
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Widgets auxiliares
-// ─────────────────────────────────────────────────────────────
 
 class _Section extends StatelessWidget {
   const _Section({
