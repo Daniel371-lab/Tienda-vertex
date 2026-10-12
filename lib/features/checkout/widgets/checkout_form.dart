@@ -392,17 +392,30 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   }
 }
 
-/// Chip con el logo de AEX para indicar Punto de Entrega.
+/// Chip con el logo de AEX responsive.
+/// Se adapta al tamaño de pantalla para verse nítido en celu, tablet y web.
 class _AexPickupBadge extends StatelessWidget {
   const _AexPickupBadge();
 
   @override
   Widget build(BuildContext context) {
+    // Escala según el ancho de pantalla:
+    // - Celu (≤ 400px): logo 20px
+    // - Tablet (400-800px): logo 22px
+    // - Web (> 800px): logo 24px
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final logoHeight = screenWidth > 800
+        ? 24.0
+        : (screenWidth > 400 ? 22.0 : 20.0);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: logoHeight * 0.35,
+        vertical: logoHeight * 0.18,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: AppColors.border,
           width: 0.8,
@@ -410,26 +423,17 @@ class _AexPickupBadge extends StatelessWidget {
       ),
       child: Image.asset(
         'assets/images/logo_aex.png',
-        height: 14,
+        height: logoHeight,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.storefront_outlined,
-              size: 11,
-              color: AppColors.primary,
-            ),
-            SizedBox(width: 3),
-            Text(
-              'PDV',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, __, ___) => Text(
+          'AEX',
+          style: TextStyle(
+            fontSize: logoHeight * 0.55,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primary,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
