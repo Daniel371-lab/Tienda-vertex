@@ -137,7 +137,15 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
                     Expanded(child: Text(c)),
                     if (hasPickup) ...[
                       const SizedBox(width: 8),
-                      const _AexPickupBadge(),
+                      const Text(
+                        'AEX',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -312,7 +320,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             ),
           ),
 
-        // ── MENSAJE INFORMATIVO (abajo de todo el formulario) ─
+        // ── MENSAJE INFORMATIVO ───────────────────────────────
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(12),
@@ -337,19 +345,23 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
                   text: TextSpan(
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textPrimary,
-                          height: 1.45,
+                          height: 1.5,
                         ),
                     children: const [
-                      TextSpan(text: 'Las ciudades con el logo '),
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: _AexPickupBadge(),
+                      TextSpan(text: 'Las ciudades marcadas con '),
+                      TextSpan(
+                        text: 'AEX',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       TextSpan(
-                        text: ' tienen Punto de Entrega AEX. Si tu ciudad '
-                            'no está listada, escribinos por WhatsApp y '
-                            'coordinamos el retiro en el punto AEX más '
-                            'cercano a tu ubicación.',
+                        text: ' en la lista tienen Punto de Entrega. '
+                            'Si tu ciudad no está listada, escribinos por '
+                            'WhatsApp y coordinamos el retiro en el punto '
+                            'AEX más cercano a tu ubicación.',
                       ),
                     ],
                   ),
@@ -389,54 +401,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     } finally {
       if (mounted) setState(() => _isValidatingCoupon = false);
     }
-  }
-}
-
-/// Chip con el logo de AEX responsive.
-/// Se adapta al tamaño de pantalla para verse nítido en celu, tablet y web.
-class _AexPickupBadge extends StatelessWidget {
-  const _AexPickupBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    // Escala según el ancho de pantalla:
-    // - Celu (≤ 400px): logo 20px
-    // - Tablet (400-800px): logo 22px
-    // - Web (> 800px): logo 24px
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final logoHeight = screenWidth > 800
-        ? 24.0
-        : (screenWidth > 400 ? 22.0 : 20.0);
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: logoHeight * 0.35,
-        vertical: logoHeight * 0.18,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: AppColors.border,
-          width: 0.8,
-        ),
-      ),
-      child: Image.asset(
-        'assets/images/logo_aex.png',
-        height: logoHeight,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (_, __, ___) => Text(
-          'AEX',
-          style: TextStyle(
-            fontSize: logoHeight * 0.55,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-    );
   }
 }
 
