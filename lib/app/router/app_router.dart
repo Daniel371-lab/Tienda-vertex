@@ -20,6 +20,10 @@ import '../../features/admin_cpanel/views/product_manager_view.dart';
 import '../../features/admin_cpanel/views/settings_view.dart';
 import '../../features/admin_cpanel/views/subcategory_manager_view.dart';
 import '../../features/client_store/views/home_view.dart';
+import '../../features/client_store/views/legal/about_view.dart';
+import '../../features/client_store/views/legal/faq_view.dart';
+import '../../features/client_store/views/legal/returns_view.dart';
+import '../../features/client_store/views/legal/shipping_terms_view.dart';
 import '../../features/client_store/views/not_found_view.dart';
 import '../../features/client_store/views/product_detail_view.dart';
 import '../../features/client_store/views/search_view.dart';
@@ -78,6 +82,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      // ── Páginas legales (antes de :slug para que no choquen) ──
+      GoRoute(
+        path: '/nosotros',
+        builder: (context, state) => const AboutView(),
+      ),
+      GoRoute(
+        path: '/terminos',
+        builder: (context, state) => const ShippingTermsView(),
+      ),
+      GoRoute(
+        path: '/devoluciones',
+        builder: (context, state) => const ReturnsView(),
+      ),
+      GoRoute(
+        path: '/faq',
+        builder: (context, state) => const FaqView(),
+      ),
+
+      // ── Rutas con parámetros ────────────────────────────────
       GoRoute(
         path: '/producto/:id',
         builder: (context, state) => ProductDetailView(
@@ -91,6 +114,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // ── Rutas admin (solo app, nunca web) ───────────────────
       if (!kIsWeb) ...[
         GoRoute(
           path: '/login',
@@ -104,8 +128,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/admin',
               builder: (context, state) => const DashboardView(),
             ),
-
-            // ── Productos ────────────────────────────────
             GoRoute(
               path: '/admin/productos',
               builder: (context, state) => const ProductManagerView(),
@@ -126,8 +148,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-
-            // ── Categorías ───────────────────────────────
             GoRoute(
               path: '/admin/categorias',
               builder: (context, state) => const CategoryManagerView(),
@@ -152,8 +172,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-
-            // ── Pedidos ──────────────────────────────────
             GoRoute(
               path: '/admin/pedidos',
               builder: (context, state) => const OrderManagerView(),
@@ -166,8 +184,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-
-            // ── Otros ────────────────────────────────────
             GoRoute(
               path: '/admin/cupones',
               builder: (context, state) => const CouponManagerView(),
@@ -184,6 +200,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ],
 
+      // ── Tienda pública ──────────────────────────────────────
       GoRoute(
         path: '/',
         builder: (context, state) => const HomeView(),
@@ -202,6 +219,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // ── Fallback ────────────────────────────────────────────
       GoRoute(
         path: '/:rest(.*)',
         builder: (context, state) => const NotFoundView(),

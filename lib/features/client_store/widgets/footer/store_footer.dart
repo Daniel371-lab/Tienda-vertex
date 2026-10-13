@@ -18,45 +18,41 @@ class StoreFooter extends ConsumerWidget {
 
     final columns = [
       const _FooterColumn(
-        title: AppStrings.footerContact,
+        title: 'Contacto',
         children: [
           _FooterLink(
-            label: AppStrings.footerWhatsapp,
+            label: 'Atención por WhatsApp',
             icon: Icons.chat_bubble_outline_rounded,
             url: 'https://wa.me/595981000000',
           ),
           _FooterLink(
-            label: AppStrings.footerEmail,
+            label: 'contacto@tiendavertex.com',
             icon: Icons.mail_outline_rounded,
             url: 'mailto:contacto@tiendavertex.com',
           ),
           _FooterText(
-            label: AppStrings.footerLocation,
+            label: 'Luque · Asunción, Paraguay',
             icon: Icons.location_on_outlined,
           ),
         ],
       ),
-      const _FooterColumn(
-        title: AppStrings.footerAbout,
-        children: [
-          _FooterText(label: AppStrings.footerAboutText),
-          SizedBox(height: 12),
-          _FooterText(label: AppStrings.footerGuarantee, bold: true),
-        ],
-      ),
       _FooterColumn(
-        title: AppStrings.footerLinks,
+        title: 'Enlaces útiles',
         children: [
           _FooterNavLink(
-            label: AppStrings.linkShipping,
+            label: 'Sobre nosotros',
+            onTap: () => context.go('/nosotros'),
+          ),
+          _FooterNavLink(
+            label: 'Términos de envío',
             onTap: () => context.go('/terminos'),
           ),
           _FooterNavLink(
-            label: AppStrings.linkReturns,
+            label: 'Políticas de devolución',
             onTap: () => context.go('/devoluciones'),
           ),
           _FooterNavLink(
-            label: AppStrings.linkFaq,
+            label: 'Preguntas frecuentes',
             onTap: () => context.go('/faq'),
           ),
         ],
@@ -71,7 +67,6 @@ class StoreFooter extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // ── Marca + columnas ────────────────────────────
           if (isWide)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,15 +77,6 @@ class StoreFooter extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       VertexLogo(markSize: 32, wordmarkSize: 18),
-                      SizedBox(height: 16),
-                      Text(
-                        AppStrings.tagline,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -106,15 +92,6 @@ class StoreFooter extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const VertexLogo(markSize: 32, wordmarkSize: 18),
-                const SizedBox(height: 16),
-                const Text(
-                  AppStrings.tagline,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
                 const SizedBox(height: 32),
                 for (final c in columns) ...[
                   c,
@@ -125,9 +102,21 @@ class StoreFooter extends ConsumerWidget {
 
           const SizedBox(height: 40),
           const Divider(),
+          const SizedBox(height: 20),
+
+          // ── Tagline ──────────────────────────────────────
+          Text(
+            'Envíos a todo el país con los mejores precios.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+
           const SizedBox(height: 16),
 
-          // ── Créditos ────────────────────────────────────
+          // ── Créditos ─────────────────────────────────────
           Text(
             AppStrings.footerCredit,
             textAlign: TextAlign.center,

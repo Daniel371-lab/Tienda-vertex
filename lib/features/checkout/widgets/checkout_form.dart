@@ -111,6 +111,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         _Field(
           label: AppStrings.fieldDepartment,
           child: DropdownButtonFormField<String>(
+            key: const ValueKey('dept_dropdown'),
             value: state.department,
             isExpanded: true,
             items: departments
@@ -126,6 +127,8 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         _Field(
           label: AppStrings.fieldCity,
           child: DropdownButtonFormField<String>(
+            // Fix: key única según departamento para forzar reconstrucción.
+            key: ValueKey('city_${state.department}'),
             value: state.city,
             isExpanded: true,
             items: cities.map((c) {
@@ -230,6 +233,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         _Field(
           label: 'Banco desde el que vas a transferir',
           child: DropdownButtonFormField<String>(
+            key: const ValueKey('bank_dropdown'),
             value: state.sourceBank,
             isExpanded: true,
             items: kSourceBanks
