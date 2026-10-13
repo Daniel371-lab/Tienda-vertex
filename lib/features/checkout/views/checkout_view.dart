@@ -6,6 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/phone_validator.dart';
 import '../../../models/order_model.dart';
+import '../../../models/paraguay_locations.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../../client_store/controllers/cart_controller.dart';
 import '../controllers/checkout_controller.dart';
@@ -33,8 +34,21 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final cart = ref.watch(cartControllerProvider);
     final checkout = ref.watch(checkoutControllerProvider);
 
-    final total =
-        (cart.subtotal - checkout.discountAmount).clamp(0, cart.subtotal);
+    final shipping = ParaguayLocations.calculateShipping(
+      department: checkout.department,
+      subtotal: cart.subtotal,
+    );
+
+    final meetsMinimum = ParaguayLocations.meetsMinimum(
+      department: checkout.department,
+      subtotal: cart.subtotal,
+    );
+
+    final minimum = ParaguayLocations.minimumOrderFor(checkout.department);
+    final missingAmount = minimum - cart.subtotal;
+
+    final total = (cart.subtotal + shipping - checkout.discountAmount)
+        .clamp(0, cart.subtotal + shipping);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -86,12 +100,58 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const CheckoutForm(),
+
+                    if (!meetsMinimum) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.warning.withOpacity(0.4),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 18,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Para envíos al interior el pedido mínimo es '
+                                'de ${CurrencyFormatter.format(minimum)}. '
+                                'Te faltan ${CurrencyFormatter.format(missingAmount)}.',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 8),
                     const Divider(),
                     const SizedBox(height: 12),
                     _SummaryRow(
                       label: AppStrings.subtotal,
                       value: CurrencyFormatter.format(cart.subtotal),
+                    ),
+                    _SummaryRow(
+                      label: 'Envío',
+                      value: shipping == 0
+                          ? 'Gratis'
+                          : CurrencyFormatter.format(shipping),
+                      valueColor:
+                          shipping == 0 ? AppColors.success : null,
                     ),
                     if (checkout.discountAmount > 0)
                       _SummaryRow(
@@ -138,8 +198,9 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed:
-                            checkout.isSubmitting ? null : _confirm,
+                        onPressed: (checkout.isSubmitting || !meetsMinimum)
+                            ? null
+                            : () => _confirm(shipping),
                         icon: checkout.isSubmitting
                             ? const SizedBox(
                                 width: 16,
@@ -177,7 +238,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     );
   }
 
-  Future<void> _confirm() async {
+  Future<void> _confirm(int shipping) async {
     final cart = ref.read(cartControllerProvider);
     final checkout = ref.read(checkoutControllerProvider);
     final ctrl = ref.read(checkoutControllerProvider.notifier);
@@ -210,6 +271,13 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       ctrl.setError('Seleccioná el banco desde el que vas a transferir.');
       return;
     }
+    if (!ParaguayLocations.meetsMinimum(
+      department: checkout.department,
+      subtotal: cart.subtotal,
+    )) {
+      ctrl.setError('No cumplís con el mínimo de compra para tu zona.');
+      return;
+    }
 
     ctrl.setSubmitting(true);
 
@@ -217,19 +285,16 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       final fs = ref.read(firestoreServiceProvider);
       final analytics = ref.read(analyticsServiceProvider);
 
-      // ── Blacklist anti-fraude (best-effort) ────────────────
       try {
         final isBlocked = await fs.isPhoneBlacklisted(checkout.phone);
         if (isBlocked) {
           ctrl.setError(AppStrings.genericError);
           return;
         }
-      } catch (_) {
-        // Ignorar. No bloqueamos el pedido por no poder verificar.
-      }
+      } catch (_) {}
 
-      final total =
-          (cart.subtotal - checkout.discountAmount).clamp(0, cart.subtotal);
+      final total = (cart.subtotal + shipping - checkout.discountAmount)
+          .clamp(0, cart.subtotal + shipping);
 
       final items = cart.items
           .map((it) => OrderItem(
@@ -253,6 +318,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
             : checkout.reference.trim(),
         items: items,
         subtotal: cart.subtotal,
+        shippingCost: shipping,
         discount: checkout.discountAmount,
         couponCode: checkout.appliedCouponCode,
         total: total,
@@ -283,6 +349,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         reference: order.reference,
         items: order.items,
         subtotal: order.subtotal,
+        shippingCost: order.shippingCost,
         discount: order.discount,
         couponCode: order.couponCode,
         total: order.total,
@@ -298,7 +365,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
       if (!mounted) return;
 
       final nav = Navigator.of(context);
-
       nav.pop();
 
       Future.delayed(const Duration(milliseconds: 150), () {

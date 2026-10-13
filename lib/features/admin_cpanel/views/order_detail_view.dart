@@ -171,6 +171,15 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                   label: 'Subtotal',
                   value: CurrencyFormatter.format(o.subtotal),
                 ),
+                _SummaryRow(
+                  label: 'Envío',
+                  value: o.shippingCost == 0
+                      ? 'Gratis'
+                      : CurrencyFormatter.format(o.shippingCost),
+                  valueColor: o.shippingCost == 0
+                      ? AppColors.success
+                      : null,
+                ),
                 if (o.discount > 0)
                   _SummaryRow(
                     label: 'Descuento ${o.couponCode ?? ""}',

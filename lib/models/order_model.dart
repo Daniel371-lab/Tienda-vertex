@@ -66,6 +66,7 @@ class Order {
     required this.status,
     this.reference,
     this.subtotal = 0,
+    this.shippingCost = 0,
     this.discount = 0,
     this.couponCode,
     this.holderName,
@@ -83,12 +84,10 @@ class Order {
   final String department;
   final String city;
   final String address;
-
-  /// Referencia adicional para ubicar la dirección (barrio, edificio, etc.)
   final String? reference;
-
   final List<OrderItem> items;
   final int subtotal;
+  final int shippingCost;
   final int discount;
   final String? couponCode;
   final int total;
@@ -124,6 +123,7 @@ class Order {
             .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e)))
             .toList(),
         subtotal: (map['subtotal'] as num?)?.toInt() ?? 0,
+        shippingCost: (map['shippingCost'] as num?)?.toInt() ?? 0,
         discount: (map['discount'] as num?)?.toInt() ?? 0,
         couponCode: map['couponCode'] as String?,
         total: (map['total'] as num?)?.toInt() ?? 0,
@@ -146,6 +146,7 @@ class Order {
         'reference': reference,
         'items': items.map((e) => e.toMap()).toList(),
         'subtotal': subtotal,
+        'shippingCost': shippingCost,
         'discount': discount,
         'couponCode': couponCode,
         'total': total,
@@ -170,6 +171,7 @@ class Order {
     String? reference,
     List<OrderItem>? items,
     int? subtotal,
+    int? shippingCost,
     int? discount,
     String? couponCode,
     int? total,
@@ -190,6 +192,7 @@ class Order {
         reference: reference ?? this.reference,
         items: items ?? this.items,
         subtotal: subtotal ?? this.subtotal,
+        shippingCost: shippingCost ?? this.shippingCost,
         discount: discount ?? this.discount,
         couponCode: couponCode ?? this.couponCode,
         total: total ?? this.total,
