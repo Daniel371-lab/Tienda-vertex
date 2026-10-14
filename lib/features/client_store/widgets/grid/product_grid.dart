@@ -39,7 +39,7 @@ class ProductGrid extends StatelessWidget {
             crossAxisCount: cols,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.78,
+            childAspectRatio: 0.68,
           ),
           delegate: SliverChildBuilderDelegate(
             (_, __) => const ProductCardShimmer(),
@@ -56,7 +56,7 @@ class ProductGrid extends StatelessWidget {
           crossAxisCount: cols,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.78,
+          childAspectRatio: 0.68,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
