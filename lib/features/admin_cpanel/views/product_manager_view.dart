@@ -32,132 +32,142 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
     final ctrl = ref.read(adminProductsControllerProvider.notifier);
     final products = state.filteredProducts;
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      body: Column(
-        children: [
-          // ── Barra de búsqueda + filtros ─────────────────────
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchCtrl,
-                  onChanged: ctrl.setSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar productos...',
-                    prefixIcon:
-                        const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              ctrl.setSearch('');
-                            },
-                          )
-                        : null,
+    return Stack(
+      children: [
+        Column(
+          children: [
+            // ── Barra de búsqueda + filtros ─────────────────
+            Container(
+              color: AppColors.surface,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchCtrl,
+                    onChanged: ctrl.setSearch,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar productos...',
+                      prefixIcon:
+                          const Icon(Icons.search_rounded, size: 20),
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded,
+                                  size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                ctrl.setSearch('');
+                              },
+                            )
+                          : null,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _CategoryChip(
-                        label: 'Todas',
-                        selected: state.selectedCategoryId == null,
-                        onTap: () => ctrl.setCategory(null),
-                      ),
-                      for (final c in state.categories)
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
                         _CategoryChip(
-                          label: c.name,
-                          selected: state.selectedCategoryId == c.id,
-                          onTap: () => ctrl.setCategory(c.id),
+                          label: 'Todas',
+                          selected: state.selectedCategoryId == null,
+                          onTap: () => ctrl.setCategory(null),
                         ),
-                      const SizedBox(width: 8),
-                      _CategoryChip(
-                        label: 'Solo activos',
-                        selected: state.showOnlyActive,
-                        onTap: ctrl.toggleOnlyActive,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Lista ───────────────────────────────────────────
-          Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary),
-                  )
-                : state.error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            state.error!,
-                            textAlign: TextAlign.center,
-                            style:
-                                const TextStyle(color: AppColors.danger),
+                        for (final c in state.categories)
+                          _CategoryChip(
+                            label: c.name,
+                            selected: state.selectedCategoryId == c.id,
+                            onTap: () => ctrl.setCategory(c.id),
                           ),
+                        const SizedBox(width: 8),
+                        _CategoryChip(
+                          label: 'Solo activos',
+                          selected: state.showOnlyActive,
+                          onTap: ctrl.toggleOnlyActive,
                         ),
-                      )
-                    : products.isEmpty
-                        ? const _EmptyState()
-                        : RefreshIndicator(
-                            onRefresh: ctrl.load,
-                            child: ListView.separated(
-                              padding: const EdgeInsets.all(12),
-                              itemCount: products.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (_, i) => _ProductTile(
-                                product: products[i],
-                                onEdit: () => context
-                                    .go('/admin/productos/${products[i].id}'),
-                                onToggleActive: () =>
-                                    _toggleActive(products[i]),
-                                onToggleFeatured: () =>
-                                    _toggleFeatured(products[i]),
-                                onDelete: () => _confirmDelete(products[i]),
-                              ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Lista ──────────────────────────────────────
+            Expanded(
+              child: state.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary),
+                    )
+                  : state.error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              state.error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: AppColors.danger),
                             ),
                           ),
-          ),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'ocr',
-            backgroundColor: AppColors.surface,
-            foregroundColor: AppColors.primary,
-            onPressed: _openOcrDialog,
-            tooltip: 'Importar desde captura',
-            child: const Icon(Icons.auto_awesome_rounded),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'new',
-            backgroundColor: AppColors.primary,
-            onPressed: () => context.go('/admin/productos/nuevo'),
-            icon: const Icon(Icons.add_rounded, color: Colors.white),
-            label: const Text(
-              'Nuevo producto',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600),
+                        )
+                      : products.isEmpty
+                          ? const _EmptyState()
+                          : RefreshIndicator(
+                              onRefresh: ctrl.load,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                    12, 12, 12, 100),
+                                itemCount: products.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (_, i) => _ProductTile(
+                                  product: products[i],
+                                  onEdit: () => context.go(
+                                      '/admin/productos/${products[i].id}'),
+                                  onToggleActive: () =>
+                                      _toggleActive(products[i]),
+                                  onToggleFeatured: () =>
+                                      _toggleFeatured(products[i]),
+                                  onDelete: () =>
+                                      _confirmDelete(products[i]),
+                                ),
+                              ),
+                            ),
             ),
+          ],
+        ),
+
+        // ── FABs manuales dentro del Stack ──────────────────
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'ocr',
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.primary,
+                onPressed: _openOcrDialog,
+                tooltip: 'Importar desde captura',
+                child: const Icon(Icons.auto_awesome_rounded),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.extended(
+                heroTag: 'new',
+                backgroundColor: AppColors.primary,
+                onPressed: () => context.go('/admin/productos/nuevo'),
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: const Text(
+                  'Nuevo producto',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -178,7 +188,7 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
   Future<void> _confirmDelete(Product p) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Eliminar producto'),
         content: Text(
           '¿Eliminar "${p.title}" definitivamente?\n\n'
@@ -186,11 +196,11 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text(
               'Eliminar',
               style: TextStyle(color: AppColors.danger),
@@ -199,13 +209,16 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
         ],
       ),
     );
-    if (ok != true) return;
+
+    if (ok != true || !mounted) return;
+
     final deleted = await ref
         .read(adminProductsControllerProvider.notifier)
         .deleteProduct(p);
-    if (mounted) {
-      _snack(deleted ? 'Producto eliminado' : 'No se pudo eliminar');
-    }
+
+    if (!mounted) return;
+
+    _snack(deleted ? 'Producto eliminado' : 'No se pudo eliminar');
   }
 
   Future<void> _openOcrDialog() async {
