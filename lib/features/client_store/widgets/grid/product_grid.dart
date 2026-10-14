@@ -5,10 +5,6 @@ import '../../../../models/product_model.dart';
 import 'product_card.dart';
 
 /// Grilla responsiva de productos.
-///   · < 600px  → 2 columnas
-///   · 600-1024 → 3 columnas
-///   · > 1024   → 4 columnas
-///   · > 1440   → 5 columnas
 class ProductGrid extends StatelessWidget {
   const ProductGrid({
     super.key,
@@ -43,7 +39,7 @@ class ProductGrid extends StatelessWidget {
             crossAxisCount: cols,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.68,
+            childAspectRatio: 0.78,
           ),
           delegate: SliverChildBuilderDelegate(
             (_, __) => const ProductCardShimmer(),
@@ -60,7 +56,7 @@ class ProductGrid extends StatelessWidget {
           crossAxisCount: cols,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.68,
+          childAspectRatio: 0.78,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {

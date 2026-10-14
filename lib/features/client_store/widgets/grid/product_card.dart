@@ -6,7 +6,12 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/badge_chip.dart';
 import '../../../../models/product_model.dart';
 
-/// Tarjeta de producto con hover animado (web) y CTA.
+/// Card minimalista de producto.
+///
+/// · Sin botón de agregar (toda la card es clickeable)
+/// · Imagen más panorámica (aspect 1.1) para no ocupar tanto espacio
+/// · Precios en columna: anterior tachado arriba, actual grande abajo
+/// · FittedBox para evitar overflow con precios largos
 class ProductCard extends StatefulWidget {
   const ProductCard({
     super.key,
@@ -54,9 +59,9 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Imagen con badges ─────────────────────────
+                // ── Imagen más panorámica (1.1) ───────────────
                 AspectRatio(
-                  aspectRatio: 1,
+                  aspectRatio: 1.1,
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -91,8 +96,8 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                       if (p.hasDiscount)
                         Positioned(
-                          top: 10,
-                          left: 10,
+                          top: 8,
+                          left: 8,
                           child: BadgeChip(
                             label: '-${p.discountPercent}%',
                             color: AppColors.danger,
@@ -113,70 +118,83 @@ class _ProductCardState extends State<ProductCard> {
                   ),
                 ),
 
-                // ── Info ─────────────────────────────────────
+                // ── Info ──────────────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        p.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(height: 1.3),
+                      // Título (máx 2 líneas)
+                      SizedBox(
+                        height: 34,
+                        child: Text(
+                          p.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontSize: 13,
+                                height: 1.3,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            CurrencyFormatter.format(p.price),
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          if (p.hasDiscount) ...[
-                            const SizedBox(width: 6),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
+
+                      // Precios
+                      if (p.hasDiscount)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Precio anterior (chico, tachado)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
                               child: Text(
                                 CurrencyFormatter.format(p.compareAtPrice!),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.textMuted,
-                                      decoration:
-                                          TextDecoration.lineThrough,
-                                    ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
+                                  decoration: TextDecoration.lineThrough,
+                                  decorationColor: AppColors.textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            // Precio actual (grande)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                CurrencyFormatter.format(p.price),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                  height: 1.1,
+                                ),
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed:
-                              p.stock > 0 ? widget.onAddToCart : null,
-                          icon: const Icon(Icons.add_shopping_cart_rounded,
-                              size: 16),
-                          label: const Text('Agregar'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 38),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                        )
+                      else
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            CurrencyFormatter.format(p.price),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              height: 1.1,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
