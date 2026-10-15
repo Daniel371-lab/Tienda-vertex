@@ -15,29 +15,28 @@ class ShippingTermsView extends StatelessWidget {
           LegalTitle(text: 'Términos de envío'),
           LegalParagraph(
             text:
-                'A continuación detallamos todo lo relacionado con el envío de '
-                'tu pedido: zonas, costos, tiempos y modalidades de entrega.',
+                'Acá encontrás toda la información sobre el envío de tu '
+                'pedido: cobertura, costos, tiempos y modalidades de entrega.',
           ),
+
+          // ── Cobertura ───────────────────────────────────────
           LegalSection(text: 'Zonas de cobertura'),
           LegalParagraph(
             text:
-                'Realizamos envíos a prácticamente todo el Paraguay. Para las '
-                'ciudades fuera de nuestra cobertura habitual, contactanos por '
-                'WhatsApp antes de comprar y te confirmamos si podemos llegar.',
+                'Realizamos envíos a la mayoría de las ciudades del Paraguay. '
+                'En el checkout vas a ver las localidades disponibles. Si tu '
+                'ciudad no aparece en la lista, escribinos por WhatsApp y '
+                'coordinamos el retiro en el punto más cercano a tu ubicación.',
           ),
+
+          // ── Costos ──────────────────────────────────────────
           LegalSection(text: 'Costos de envío'),
-          LegalBullet(
-            text: 'Gran Asunción: ₲ 20.000.',
-          ),
-          LegalBullet(
-            text: 'Cordillera y Paraguarí: ₲ 30.000.',
-          ),
-          LegalBullet(
-            text: 'Resto del interior: ₲ 35.000.',
-          ),
-          LegalBullet(
-            text: 'Envío gratis en compras desde ₲ 500.000.',
-          ),
+          LegalBullet(text: 'Gran Asunción: ₲ 20.000.'),
+          LegalBullet(text: 'Cordillera y Paraguarí: ₲ 30.000.'),
+          LegalBullet(text: 'Resto del interior: ₲ 35.000.'),
+          LegalBullet(text: 'Envío gratis en compras desde ₲ 500.000.'),
+
+          // ── Mínimo ──────────────────────────────────────────
           LegalSection(text: 'Mínimo de compra'),
           LegalParagraph(
             text:
@@ -45,31 +44,23 @@ class ShippingTermsView extends StatelessWidget {
                 'de ₲ 300.000. Esto nos permite mantener las tarifas de envío '
                 'bajas para todos nuestros clientes.',
           ),
+
+          // ── Tiempos ─────────────────────────────────────────
           LegalSection(text: 'Tiempos de entrega'),
           LegalParagraph(
             text:
-                'Los tiempos estimados son los siguientes, y se cuentan desde '
-                'que confirmamos el pago:',
+                'Los tiempos estimados se cuentan desde que confirmamos el '
+                'pago de tu pedido:',
           ),
-          LegalBullet(
-            text: 'Gran Asunción: 1 a 3 días hábiles.',
-          ),
-          LegalBullet(
-            text: 'Interior del país: 3 a 7 días hábiles.',
-          ),
+          LegalBullet(text: 'Gran Asunción: 3 a 5 días hábiles.'),
+          LegalBullet(text: 'Interior del país: 4 a 7 días hábiles.'),
           LegalParagraph(
             text:
                 'Los plazos pueden extenderse por feriados, condiciones '
                 'climáticas o causas ajenas a nosotros.',
           ),
-          LegalSection(text: 'Puntos de entrega'),
-          LegalParagraph(
-            text:
-                'En algunas ciudades contamos con puntos de retiro disponibles. '
-                'Si tu ciudad está marcada en el checkout, podés elegir entre '
-                'recibir tu pedido a domicilio o retirarlo en el punto más '
-                'cercano.',
-          ),
+
+          // ── Seguimiento ─────────────────────────────────────
           LegalSection(text: 'Seguimiento'),
           LegalParagraph(
             text:

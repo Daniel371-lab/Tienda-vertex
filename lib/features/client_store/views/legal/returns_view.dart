@@ -12,62 +12,103 @@ class ReturnsView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LegalTitle(text: 'Políticas de devolución'),
+          LegalTitle(text: 'Políticas de devolución y garantía'),
           LegalParagraph(
             text:
-                'Queremos que tu experiencia de compra sea satisfactoria. Si '
-                'por algún motivo no estás conforme con tu producto, te '
-                'explicamos cómo proceder.',
+                'En Tienda Vertex trabajamos para que cada pedido llegue en '
+                'perfectas condiciones. Si algo no salió como esperabas, te '
+                'damos una solución rápida y transparente.',
           ),
-          LegalSection(text: 'Plazo para solicitar un cambio'),
+
+          LegalSection(text: 'Cuándo aplica una devolución'),
           LegalParagraph(
             text:
-                'Tenés hasta 7 días corridos desde la recepción del pedido '
-                'para solicitar un cambio o devolución.',
-          ),
-          LegalSection(text: 'Condiciones'),
-          LegalBullet(
-            text: 'El producto debe estar sin uso y en perfecto estado.',
+                'Aceptamos devoluciones y nos hacemos cargo de los costos de '
+                'envío asociados en los siguientes casos:',
           ),
           LegalBullet(
-            text: 'Debe conservar su empaque original, etiquetas y accesorios.',
+            text:
+                'El producto llegó dañado, roto o con una falla de fábrica '
+                'comprobable.',
           ),
           LegalBullet(
-            text: 'Tenés que presentar el comprobante de compra.',
-          ),
-          LegalSection(text: 'Casos no cubiertos'),
-          LegalBullet(
-            text: 'Productos dañados por mal uso o negligencia.',
+            text:
+                'Recibiste un producto incorrecto distinto al que pediste.',
           ),
           LegalBullet(
-            text: 'Productos personalizados o hechos a medida.',
+            text:
+                'El paquete sufrió un extravío total durante el trayecto '
+                'a destino.',
           ),
-          LegalBullet(
-            text: 'Productos que hayan sido abiertos o usados.',
-          ),
-          LegalBullet(
-            text: 'Daños causados durante el transporte por parte del courier.',
-          ),
-          LegalSection(text: 'Producto dañado o incorrecto'),
           LegalParagraph(
             text:
-                'Si recibiste un producto dañado o distinto al que pediste, '
-                'contactanos por WhatsApp dentro de las 48 horas siguientes '
-                'a la entrega. Te vamos a dar una solución inmediata.',
+                'Frente a cualquiera de estos inconvenientes, podrás elegir '
+                'entre el cambio por un producto nuevo o el reembolso '
+                'completo de tu dinero.',
           ),
-          LegalSection(text: 'Cómo iniciar una devolución'),
+
+          LegalSection(text: 'Cuándo no aplica'),
+          LegalParagraph(
+            text: 'No aceptamos devoluciones en los siguientes casos:',
+          ),
+          LegalBullet(
+            text:
+                'Cambio de opinión o arrepentimiento una vez realizado o '
+                'despachado el pedido.',
+          ),
+          LegalBullet(
+            text:
+                'Productos que hayan sido usados o muestren signos de '
+                'manipulación.',
+          ),
+          LegalBullet(
+            text:
+                'Daños causados por mal uso, golpes o negligencia del cliente.',
+          ),
+          LegalBullet(
+            text: 'Productos personalizados o fabricados a pedido.',
+          ),
+          LegalBullet(
+            text:
+                'Pedidos rechazados al momento de la entrega sin '
+                'justificación válida.',
+          ),
+
+          LegalSection(text: 'Plazo para reclamar'),
           LegalParagraph(
             text:
-                'Escribinos por WhatsApp indicando el número de pedido y el '
-                'motivo. Te vamos a guiar en el proceso y coordinar el retiro '
-                'o el envío del producto.',
+                'Tenés 48 horas desde que recibís el pedido para reportar '
+                'cualquier problema o falla con el producto. Pasado este plazo '
+                'de 48 horas, el pedido se considera aceptado en conformidad y '
+                'no podremos procesar el reclamo.',
           ),
+
+          LegalSection(text: 'Cómo hacer un reclamo'),
+          LegalParagraph(
+            text:
+                'Escribinos por WhatsApp con tu número de pedido, contanos qué '
+                'pasó y adjuntá fotos o videos del producto y del empaque. Te '
+                'respondemos a la brevedad para evaluar el caso y coordinar el '
+                'proceso.',
+          ),
+
           LegalSection(text: 'Reembolsos'),
           LegalParagraph(
             text:
-                'Una vez recibido y verificado el producto, procesamos el '
-                'reembolso en un plazo de hasta 5 días hábiles. El reembolso '
-                'se realiza por el mismo medio de pago que utilizaste.',
+                'Una vez que recibimos y verificamos el producto devuelto en '
+                'nuestro depósito, procesamos el reembolso en un plazo de '
+                'hasta 5 días hábiles. El dinero se reintegra a través del '
+                'mismo medio de pago utilizado o vía transferencia bancaria.',
+          ),
+
+          LegalSection(text: 'Pedidos rechazados o no entregados'),
+          LegalParagraph(
+            text:
+                'Si el pedido es rechazado en puerta al momento de la entrega '
+                'sin una causa justificada o el paquete vuelve al depósito por '
+                'no poder ubicar al destinatario, se le reintegra al cliente el '
+                'monto del producto menos el costo del envío de retorno. El '
+                'reembolso se procesa por el mismo medio de pago que utilizó.',
           ),
         ],
       ),

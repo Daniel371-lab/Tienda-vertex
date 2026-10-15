@@ -15,29 +15,26 @@ class AboutView extends StatelessWidget {
           LegalTitle(text: 'Sobre nosotros'),
           LegalParagraph(
             text:
-                'Tienda Vertex es una tienda online paraguaya dedicada a ofrecer '
-                'productos seleccionados de distintas categorías, con envíos a '
-                'todo el país y atención personalizada.',
+                'Tienda Vertex es una tienda online paraguaya dedicada a '
+                'ofrecer productos de primera calidad, con envíos a todo el '
+                'país y atención personalizada.',
           ),
-          LegalSection(text: 'Nuestra propuesta'),
           LegalParagraph(
             text:
-                'Trabajamos con proveedores de confianza para ofrecer productos '
-                'de calidad a precios competitivos. Cada producto pasa por una '
+                'Somos una tienda de paraguayos para paraguayos, así que '
+                'ofrecemos precios competitivos. Cada producto pasa por una '
                 'selección cuidadosa antes de formar parte de nuestro catálogo.',
           ),
-          LegalBullet(text: 'Envíos a todo Paraguay.'),
+          LegalBullet(text: 'Envíos a todo el país.'),
           LegalBullet(text: 'Atención personalizada por WhatsApp.'),
-          LegalBullet(
-            text: 'Seguimiento de cada pedido hasta la entrega.',
-          ),
+          LegalBullet(text: 'Envíos con seguimiento.'),
           LegalSection(text: 'Nuestro compromiso'),
           LegalParagraph(
             text:
                 'Buscamos que comprar en Tienda Vertex sea simple, seguro y '
                 'transparente. Si tenés alguna duda antes, durante o después de '
-                'tu compra, podés contactarnos por WhatsApp y te vamos a responder '
-                'a la brevedad.',
+                'tu compra, podés contactarnos por WhatsApp y te vamos a '
+                'responder a la brevedad.',
           ),
         ],
       ),
