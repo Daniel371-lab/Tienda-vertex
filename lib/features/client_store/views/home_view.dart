@@ -189,14 +189,30 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       ),
                     ),
 
-                    // Título de la pantalla (solo si aplica)
+                    // Título (solo si aplica)
                     if (_titleFor(state).isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                          child: Text(
-                            _titleFor(state),
-                            style: Theme.of(context).textTheme.titleLarge,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _titleFor(state),
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
+                              ),
+                              if (_subtitleFor(state).isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  _subtitleFor(state),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: AppColors.textMuted),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
@@ -266,30 +282,37 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  /// Devuelve el título a mostrar en el SliverAppBar.
-  /// Vacío = no mostrar título (modo general y explore).
+  /// Título principal.
   String _titleFor(StoreState state) {
-    // General (`/`): sin título
+    // General: sin título
     if (state.mode == HomeMode.general) return '';
 
-    // Explore (`/?cat=perfumes`): sin título
-    if (state.mode == HomeMode.explore) return '';
+    // Explore: nombre de la categoría
+    if (state.mode == HomeMode.explore) {
+      return state.activeCategory?.name ?? '';
+    }
 
-    // Specialized (`/perfumes`): nombre de la tienda
+    // Specialized: nombre de la categoría
     if (state.mode == HomeMode.specialized) {
       return state.activeCategory?.name ?? '';
     }
 
-    // Subcategory (`/perfumes/arabes`): "Categoría · Subcategoría"
+    // Subcategory: "Categoría · Subcategoría"
     if (state.mode == HomeMode.subcategory) {
       final catName = state.activeCategory?.name ?? '';
       if (state.activeSubcategory != null) {
         return '$catName · ${state.activeSubcategory!.name}';
       }
-      // "Todos" de la categoría → solo el nombre
       return catName;
     }
 
+    return '';
+  }
+
+  /// Subtítulo según el modo.
+  String _subtitleFor(StoreState state) {
+    if (state.mode == HomeMode.explore) return 'Todos los productos';
+    if (state.mode == HomeMode.specialized) return 'Nuestra selección';
     return '';
   }
 
@@ -297,8 +320,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final notifier = ref.read(storeControllerProvider.notifier);
     notifier.selectSubcategory(null);
 
-    // En tienda especializada o subcategoría, el logo va a la tienda del nicho.
-    // En general/explore, va al home general.
+    // En specialized/subcategory el logo se queda en el nicho.
+    // En general/explore va al home.
     if (widget.mode == HomeMode.specialized ||
         widget.mode == HomeMode.subcategory) {
       context.go('/${widget.categorySlug}');

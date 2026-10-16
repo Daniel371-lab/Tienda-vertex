@@ -23,6 +23,9 @@ class SmartDrawer extends ConsumerWidget {
     final state = ref.watch(storeControllerProvider);
     final notifier = ref.read(storeControllerProvider.notifier);
 
+    // Slug actual obtenido desde la URL de GoRouter (fuente de verdad).
+    final currentSlug = GoRouterState.of(context).pathParameters['slug'] ?? '';
+
     return Container(
       width: 300,
       decoration: BoxDecoration(
@@ -65,17 +68,16 @@ class SmartDrawer extends ConsumerWidget {
               child: state.showSubcategoriesInDrawer
                   ? _SubcategoriesList(
                       state: state,
+                      currentSlug: currentSlug,
                       onNavigate: onNavigate,
                       onSelectSubcategory: (sub) {
                         notifier.selectSubcategory(sub.id);
-                        context.go(
-                          '/${state.activeCategory!.slug}/${sub.slug}',
-                        );
+                        context.go('/$currentSlug/${sub.slug}');
                         onNavigate?.call();
                       },
                       onSelectAll: () {
                         notifier.selectSubcategory(null);
-                        context.go('/${state.activeCategory!.slug}/todos');
+                        context.go('/$currentSlug/todos');
                         onNavigate?.call();
                       },
                     )
@@ -109,7 +111,7 @@ class SmartDrawer extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// MODO GENERAL / EXPLORE — Lista de categorías principales
+// GENERAL / EXPLORE — Lista de categorías
 // ─────────────────────────────────────────────────────────────
 
 class _CategoriesList extends StatelessWidget {
@@ -173,25 +175,27 @@ class _CategoriesList extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// MODO SPECIALIZED / SUBCATEGORY — Lista de subcategorías
+// SPECIALIZED / SUBCATEGORY — Lista de subcategorías
 // ─────────────────────────────────────────────────────────────
 
 class _SubcategoriesList extends StatelessWidget {
   const _SubcategoriesList({
     required this.state,
+    required this.currentSlug,
     required this.onSelectSubcategory,
     required this.onSelectAll,
     this.onNavigate,
   });
 
   final StoreState state;
+  final String currentSlug;
   final void Function(Subcategory) onSelectSubcategory;
   final VoidCallback onSelectAll;
   final VoidCallback? onNavigate;
 
   @override
   Widget build(BuildContext context) {
-    final category = state.activeCategory!;
+    final category = state.activeCategory;
     final selectedId = state.selectedSubcategoryId;
 
     return ListView(
@@ -200,7 +204,7 @@ class _SubcategoriesList extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Text(
-            category.name.toUpperCase(),
+            (category?.name ?? currentSlug).toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: AppColors.textMuted,
                   letterSpacing: 1.2,
@@ -216,14 +220,15 @@ class _SubcategoriesList extends StatelessWidget {
           onTap: onSelectAll,
         ),
 
-        for (final sub in category.subcategories)
-          _DrawerTile(
-            label: sub.name,
-            icon: Icons.circle_outlined,
-            iconSize: 8,
-            selected: selectedId == sub.id,
-            onTap: () => onSelectSubcategory(sub),
-          ),
+        if (category != null)
+          for (final sub in category.subcategories)
+            _DrawerTile(
+              label: sub.name,
+              icon: Icons.circle_outlined,
+              iconSize: 8,
+              selected: selectedId == sub.id,
+              onTap: () => onSelectSubcategory(sub),
+            ),
       ],
     );
   }
