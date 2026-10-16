@@ -110,7 +110,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           builder: (context, state, child) =>
               AdminShellView(child: child),
           routes: [
-            GoRoute(path: '/admin', builder: (_, __) => const DashboardView()),
+            GoRoute(
+              path: '/admin',
+              builder: (_, __) => const DashboardView(),
+            ),
             GoRoute(
               path: '/admin/productos',
               builder: (_, __) => const ProductManagerView(),
@@ -135,7 +138,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/admin/categorias',
               builder: (_, __) => const CategoryManagerView(),
               routes: [
-                GoRoute(path: 'nueva', builder: (_, __) => const CategoryFormView()),
+                GoRoute(
+                  path: 'nueva',
+                  builder: (_, __) => const CategoryFormView(),
+                ),
                 GoRoute(
                   path: ':id',
                   builder: (context, state) => CategoryFormView(
@@ -164,9 +170,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-            GoRoute(path: '/admin/cupones', builder: (_, __) => const CouponManagerView()),
-            GoRoute(path: '/admin/blacklist', builder: (_, __) => const BlacklistView()),
-            GoRoute(path: '/admin/ajustes', builder: (_, __) => const SettingsView()),
+            GoRoute(
+              path: '/admin/cupones',
+              builder: (_, __) => const CouponManagerView(),
+            ),
+            GoRoute(
+              path: '/admin/blacklist',
+              builder: (_, __) => const BlacklistView(),
+            ),
+            GoRoute(
+              path: '/admin/ajustes',
+              builder: (_, __) => const SettingsView(),
+            ),
           ],
         ),
       ],
@@ -209,4 +224,4 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (_, __) => const NotFoundView(),
   );
-}
+});
