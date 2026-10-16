@@ -80,17 +80,10 @@ class AdminProductsController extends StateNotifier<AdminProductsState> {
       final fs = _ref.read(firestoreServiceProvider);
       final db = _ref.read(firestoreInstanceProvider);
 
-      // Categorías
       final cats = await fs.fetchCategories(includeInactive: true);
 
-      // Productos (todos, sin filtrar por isActive)
-      final snap = await db
-          .collection('products')
-          .limit(200)
-          .get();
-      final products = snap.docs
-          .map((d) => Product.fromFirestore(d))
-          .toList()
+      final snap = await db.collection('products').limit(300).get();
+      final products = snap.docs.map((d) => Product.fromFirestore(d)).toList()
         ..sort((a, b) {
           final aD = a.createdAt ?? DateTime(1970);
           final bD = b.createdAt ?? DateTime(1970);
@@ -137,20 +130,6 @@ class AdminProductsController extends StateNotifier<AdminProductsState> {
     }
   }
 
-  Future<bool> toggleFeatured(Product p) async {
-    try {
-      final db = _ref.read(firestoreInstanceProvider);
-      await db.collection('products').doc(p.id).update({
-        'isFeatured': !p.isFeatured,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      await load();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<bool> deleteProduct(Product p) async {
     try {
       final db = _ref.read(firestoreInstanceProvider);
@@ -167,11 +146,9 @@ class AdminProductsController extends StateNotifier<AdminProductsState> {
       final db = _ref.read(firestoreInstanceProvider);
 
       if (product.id.isEmpty) {
-        // Crear
         final ref = db.collection('products').doc();
         await ref.set(product.toMap());
       } else {
-        // Actualizar
         await db.collection('products').doc(product.id).update(
               product.toMap(),
             );

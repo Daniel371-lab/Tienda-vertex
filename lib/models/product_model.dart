@@ -12,6 +12,8 @@ class Product {
     this.subcategoryId,
     this.stock = 0,
     this.isFeatured = false,
+    this.isFeaturedGeneral = false,
+    this.isFeaturedInCategories = const [],
     this.isActive = true,
     this.tags = const [],
     this.createdAt,
@@ -27,7 +29,17 @@ class Product {
   final String? subcategoryId;
   final List<String> images;
   final int stock;
+
+  /// Marca legacy. Se mantiene por compatibilidad pero ya no se usa.
   final bool isFeatured;
+
+  /// Aparece en el home general (`/`).
+  final bool isFeaturedGeneral;
+
+  /// Aparece destacado en estas tiendas especializadas (slugs).
+  /// Ej: `['perfumes']` o `['perfumes', 'joyeria']`.
+  final List<String> isFeaturedInCategories;
+
   final bool isActive;
   final List<String> tags;
   final DateTime? createdAt;
@@ -59,6 +71,10 @@ class Product {
         images: (map['images'] as List?)?.whereType<String>().toList() ?? const [],
         stock: (map['stock'] as num?)?.toInt() ?? 0,
         isFeatured: map['isFeatured'] as bool? ?? false,
+        isFeaturedGeneral: map['isFeaturedGeneral'] as bool? ?? false,
+        isFeaturedInCategories:
+            (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ??
+                const [],
         isActive: map['isActive'] as bool? ?? true,
         tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
         createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
@@ -75,6 +91,8 @@ class Product {
         'images': images,
         'stock': stock,
         'isFeatured': isFeatured,
+        'isFeaturedGeneral': isFeaturedGeneral,
+        'isFeaturedInCategories': isFeaturedInCategories,
         'isActive': isActive,
         'tags': tags,
         'createdAt': createdAt != null
@@ -93,6 +111,8 @@ class Product {
     List<String>? images,
     int? stock,
     bool? isFeatured,
+    bool? isFeaturedGeneral,
+    List<String>? isFeaturedInCategories,
     bool? isActive,
     List<String>? tags,
   }) =>
@@ -107,6 +127,9 @@ class Product {
         images: images ?? this.images,
         stock: stock ?? this.stock,
         isFeatured: isFeatured ?? this.isFeatured,
+        isFeaturedGeneral: isFeaturedGeneral ?? this.isFeaturedGeneral,
+        isFeaturedInCategories:
+            isFeaturedInCategories ?? this.isFeaturedInCategories,
         isActive: isActive ?? this.isActive,
         tags: tags ?? this.tags,
         createdAt: createdAt,

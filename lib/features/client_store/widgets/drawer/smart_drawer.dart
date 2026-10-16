@@ -8,11 +8,6 @@ import '../../../../core/widgets/vertex_logo.dart';
 import '../../../../models/category_model.dart';
 import '../../controllers/store_controller.dart';
 
-/// Menú lateral inteligente que adapta su contenido según el nicho activo.
-///
-/// · Escenario A (ruta raíz): lista de categorías principales.
-/// · Escenario B (nicho activo): opción "Ver todas" + subcategorías.
-/// · En pantallas anchas (>1024px) se renderiza como panel persistente.
 class SmartDrawer extends ConsumerWidget {
   const SmartDrawer({
     super.key,
@@ -20,8 +15,6 @@ class SmartDrawer extends ConsumerWidget {
     this.isPersistent = false,
   });
 
-  /// Callback invocado tras una navegación.
-  /// En modo overlay cierra el drawer; en modo persistente no hace nada.
   final VoidCallback? onNavigate;
   final bool isPersistent;
 
@@ -29,7 +22,6 @@ class SmartDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(storeControllerProvider);
     final notifier = ref.read(storeControllerProvider.notifier);
-    final activeCat = state.activeCategory;
 
     return Container(
       width: 300,
@@ -46,7 +38,7 @@ class SmartDrawer extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Encabezado del drawer ────────────────────────
+            // ── Encabezado ──────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
               child: isPersistent
@@ -70,21 +62,12 @@ class SmartDrawer extends ConsumerWidget {
             ),
             const Divider(),
 
-            // ── Contenido según escenario ────────────────────
+            // ── Contenido según modo ────────────────────────
             Expanded(
-              child: activeCat == null
-                  ? _GlobalList(
-                      categories: state.categories,
-                      isLoading: state.isLoadingCategories,
-                      onSelect: (slug) {
-                        notifier.selectSubcategory(null);
-                        context.go('/$slug');
-                        onNavigate?.call();
-                      },
-                    )
-                  : _NicheList(
-                      category: activeCat,
-                      selectedSubcategoryId: state.selectedSubcategoryId,
+              child: state.showSubcategoriesInDrawer
+                  ? _SubcategoriesList(
+                      state: state,
+                      onNavigate: onNavigate,
                       onBackToGlobal: () {
                         notifier.selectSubcategory(null);
                         context.go('/');
@@ -92,18 +75,29 @@ class SmartDrawer extends ConsumerWidget {
                       },
                       onSelectSubcategory: (sub) {
                         notifier.selectSubcategory(sub.id);
-                        context.go('/${activeCat.slug}/${sub.slug}');
+                        context.go(
+                          '/${state.activeCategory!.slug}/${sub.slug}',
+                        );
                         onNavigate?.call();
                       },
                       onSelectAll: () {
                         notifier.selectSubcategory(null);
-                        context.go('/${activeCat.slug}');
+                        context.go('/${state.activeCategory!.slug}');
+                        onNavigate?.call();
+                      },
+                    )
+                  : _CategoriesList(
+                      categories: state.categories,
+                      isLoading: state.isLoadingCategories,
+                      onSelect: (slug) {
+                        notifier.selectSubcategory(null);
+                        context.go('/?cat=$slug');
                         onNavigate?.call();
                       },
                     ),
             ),
 
-            // ── Pie del drawer ───────────────────────────────
+            // ── Pie ─────────────────────────────────────────
             const Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -122,11 +116,11 @@ class SmartDrawer extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ESCENARIO A — Lista global de categorías principales
+// MODO GENERAL / EXPLORE — Lista de categorías principales
 // ─────────────────────────────────────────────────────────────
 
-class _GlobalList extends StatelessWidget {
-  const _GlobalList({
+class _CategoriesList extends StatelessWidget {
+  const _CategoriesList({
     required this.categories,
     required this.isLoading,
     required this.onSelect,
@@ -183,30 +177,32 @@ class _GlobalList extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ESCENARIO B — Subcategorías del nicho activo
+// MODO SPECIALIZED / SUBCATEGORY — Lista de subcategorías
 // ─────────────────────────────────────────────────────────────
 
-class _NicheList extends StatelessWidget {
-  const _NicheList({
-    required this.category,
-    required this.selectedSubcategoryId,
+class _SubcategoriesList extends StatelessWidget {
+  const _SubcategoriesList({
+    required this.state,
     required this.onBackToGlobal,
     required this.onSelectSubcategory,
     required this.onSelectAll,
+    this.onNavigate,
   });
 
-  final Category category;
-  final String? selectedSubcategoryId;
+  final StoreState state;
   final VoidCallback onBackToGlobal;
   final void Function(Subcategory) onSelectSubcategory;
   final VoidCallback onSelectAll;
+  final VoidCallback? onNavigate;
 
   @override
   Widget build(BuildContext context) {
+    final category = state.activeCategory!;
+    final selectedId = state.selectedSubcategoryId;
+
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        // Vía de escape global
         _DrawerTile(
           label: AppStrings.backToAllCategories,
           icon: Icons.arrow_back_rounded,
@@ -216,7 +212,6 @@ class _NicheList extends StatelessWidget {
         ),
         const Divider(),
 
-        // Nombre del nicho activo
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Text(
@@ -229,21 +224,19 @@ class _NicheList extends StatelessWidget {
           ),
         ),
 
-        // Opción "Todas las subcategorías"
         _DrawerTile(
           label: AppStrings.filterAll,
           icon: Icons.grid_view_rounded,
-          selected: selectedSubcategoryId == null,
+          selected: selectedId == null,
           onTap: onSelectAll,
         ),
 
-        // Subcategorías del nicho
         for (final sub in category.subcategories)
           _DrawerTile(
             label: sub.name,
             icon: Icons.circle_outlined,
             iconSize: 8,
-            selected: selectedSubcategoryId == sub.id,
+            selected: selectedId == sub.id,
             onTap: () => onSelectSubcategory(sub),
           ),
       ],
@@ -252,7 +245,7 @@ class _NicheList extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tile genérico del drawer
+// Tile genérico
 // ─────────────────────────────────────────────────────────────
 
 class _DrawerTile extends StatelessWidget {
@@ -316,8 +309,6 @@ class _DrawerTile extends StatelessWidget {
   }
 }
 
-/// Mapea el nombre del ícono (guardado en Firestore) a un IconData.
-/// Los nombres coinciden con lo que el cPanel guarda en `icon`.
 IconData _iconForCategory(String icon) {
   switch (icon) {
     case 'perfume_icon':

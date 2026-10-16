@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../core/utils/currency_formatter.dart';
 import '../../../models/category_model.dart';
 import '../../../models/product_model.dart';
 import '../../../services/ai/gemini_service.dart';
@@ -38,8 +37,9 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
 
   String? _categoryId;
   String? _subcategoryId;
-  bool _isFeatured = false;
   bool _isActive = true;
+  bool _isFeaturedGeneral = false;
+  final Set<String> _featuredInCategories = {};
   final List<String> _images = [];
 
   bool _loading = true;
@@ -88,8 +88,11 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
           _tagsCtrl.text = p.tags.join(', ');
           _categoryId = p.categoryId;
           _subcategoryId = p.subcategoryId;
-          _isFeatured = p.isFeatured;
           _isActive = p.isActive;
+          _isFeaturedGeneral = p.isFeaturedGeneral;
+          _featuredInCategories
+            ..clear()
+            ..addAll(p.isFeaturedInCategories);
           _images
             ..clear()
             ..addAll(p.images);
@@ -130,10 +133,13 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ── Imágenes ───────────────────────────────────
             _label(context, 'Imágenes'),
             const SizedBox(height: 10),
             _buildImagesRow(),
             const SizedBox(height: 20),
+
+            // ── Título ─────────────────────────────────────
             _label(context, 'Título'),
             TextFormField(
               controller: _titleCtrl,
@@ -146,6 +152,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                   : null,
             ),
             const SizedBox(height: 16),
+
+            // ── Descripción ────────────────────────────────
             _label(context, 'Descripción'),
             TextFormField(
               controller: _descCtrl,
@@ -155,6 +163,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // ── Precios ────────────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -165,16 +175,11 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                       TextFormField(
                         controller: _priceCtrl,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration:
-                            const InputDecoration(hintText: '280000'),
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        decoration: const InputDecoration(hintText: '280000'),
                         validator: (v) {
                           final n = int.tryParse(v ?? '');
-                          if (n == null || n <= 0) {
-                            return 'Precio inválido';
-                          }
+                          if (n == null || n <= 0) return 'Precio inválido';
                           return null;
                         },
                       ),
@@ -190,11 +195,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                       TextFormField(
                         controller: _compareCtrl,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration:
-                            const InputDecoration(hintText: 'Opcional'),
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        decoration: const InputDecoration(hintText: 'Opcional'),
                       ),
                     ],
                   ),
@@ -202,6 +204,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ],
             ),
             const SizedBox(height: 16),
+
+            // ── Stock + Tags ───────────────────────────────
             Row(
               children: [
                 SizedBox(
@@ -213,9 +217,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                       TextFormField(
                         controller: _stockCtrl,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         decoration: const InputDecoration(hintText: '10'),
                       ),
                     ],
@@ -239,6 +241,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ],
             ),
             const SizedBox(height: 16),
+
+            // ── Categoría + Subcategoría ───────────────────
             Row(
               children: [
                 Expanded(
@@ -258,11 +262,18 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                         onChanged: (v) => setState(() {
                           _categoryId = v;
                           _subcategoryId = null;
+                          // Limpiamos destacados de categorías que ya no aplican
+                          _featuredInCategories.removeWhere(
+                            (slug) => !categories.any(
+                              (c) => c.slug == slug && c.id == v,
+                            ),
+                          );
                         }),
                         validator: (v) =>
                             v == null ? 'Seleccioná una categoría' : null,
-                        decoration:
-                            const InputDecoration(hintText: 'Seleccionar'),
+                        decoration: const InputDecoration(
+                          hintText: 'Seleccionar',
+                        ),
                       ),
                     ],
                   ),
@@ -294,7 +305,9 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // ── Toggles ────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -305,22 +318,88 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                 children: [
                   SwitchListTile(
                     title: const Text('Producto activo'),
-                    subtitle:
-                        const Text('Visible en la tienda pública'),
+                    subtitle: const Text('Visible en la tienda'),
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
-                  ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: const Text('Destacado'),
-                    subtitle: const Text('Aparece en la portada'),
-                    value: _isFeatured,
-                    onChanged: (v) => setState(() => _isFeatured = v),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // ── Destacar en home general ──────────────────
+            _label(context, 'Destacar producto'),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: SwitchListTile(
+                title: const Text('Destacar en home general'),
+                subtitle: const Text(
+                  'Aparece en la portada de la tienda (máx 10)',
+                ),
+                value: _isFeaturedGeneral,
+                onChanged: (v) =>
+                    setState(() => _isFeaturedGeneral = v),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Destacar en tiendas específicas ──────────
+            if (categories.isNotEmpty)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                      child: Text(
+                        'Destacar en tiendas específicas',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        'Aparece en la portada de cada nicho (máx 10 por nicho)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textMuted,
+                            ),
+                      ),
+                    ),
+                    for (final cat in categories)
+                      CheckboxListTile(
+                        value: _featuredInCategories.contains(cat.slug),
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _featuredInCategories.add(cat.slug);
+                            } else {
+                              _featuredInCategories.remove(cat.slug);
+                            }
+                          });
+                        },
+                        title: Text(cat.name),
+                        activeColor: AppColors.primary,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 28),
+
             SizedBox(
               height: 52,
               child: FilledButton.icon(
@@ -363,7 +442,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
 
   List<Widget> _buildImageItems() {
     final items = <Widget>[];
-
     for (final url in _images) {
       items.add(
         Padding(
@@ -375,14 +453,12 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         ),
       );
     }
-
     if (_images.length < 6) {
       items.add(_AddImageButton(
         isUploading: _uploadingImage,
         onTap: _pickImage,
       ));
     }
-
     return items;
   }
 
@@ -401,46 +477,46 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
     );
   }
 
-Future<void> _pickImage() async {
-  try {
-    final picker = ImagePicker();
-    final files = await picker.pickMultiImage(
-      maxWidth: 1600,
-      maxHeight: 2400,
-      imageQuality: 85,
-    );
-    if (files.isEmpty) return;
-
-    setState(() => _uploadingImage = true);
-
-    final cloudinary = ref.read(cloudinaryServiceProvider);
-    final pid = widget.productId ??
-        'temp_${DateTime.now().millisecondsSinceEpoch}';
-
-    for (final f in files) {
-      if (_images.length >= 6) break;
-      final bytes = await f.readAsBytes();
-      final url = await cloudinary.uploadProductImage(
-        productId: pid,
-        bytes: bytes,
-        filename: f.name,
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final files = await picker.pickMultiImage(
+        maxWidth: 1600,
+        maxHeight: 2400,
+        imageQuality: 85,
       );
-      _images.add(url);
-    }
+      if (files.isEmpty) return;
 
-    if (mounted) setState(() => _uploadingImage = false);
-  } catch (e) {
-    if (mounted) {
-      setState(() => _uploadingImage = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al subir imagen: $e'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+      setState(() => _uploadingImage = true);
+
+      final cloudinary = ref.read(cloudinaryServiceProvider);
+      final pid = widget.productId ??
+          'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+      for (final f in files) {
+        if (_images.length >= 6) break;
+        final bytes = await f.readAsBytes();
+        final url = await cloudinary.uploadProductImage(
+          productId: pid,
+          bytes: bytes,
+          filename: f.name,
+        );
+        _images.add(url);
+      }
+
+      if (mounted) setState(() => _uploadingImage = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al subir imagen: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
     }
   }
-}
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -464,8 +540,9 @@ Future<void> _pickImage() async {
         subcategoryId: _subcategoryId,
         images: _images,
         stock: int.tryParse(_stockCtrl.text) ?? 0,
-        isFeatured: _isFeatured,
         isActive: _isActive,
+        isFeaturedGeneral: _isFeaturedGeneral,
+        isFeaturedInCategories: _featuredInCategories.toList(),
         tags: tags,
       );
 
@@ -478,9 +555,7 @@ Future<void> _pickImage() async {
       if (ok) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isEditing ? 'Producto actualizado' : 'Producto creado',
-            ),
+            content: Text(_isEditing ? 'Producto actualizado' : 'Producto creado'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
@@ -527,10 +602,8 @@ class _ImageThumb extends StatelessWidget {
               width: 100,
               height: 100,
               color: AppColors.surfaceAlt,
-              child: const Icon(
-                Icons.broken_image_outlined,
-                color: AppColors.textMuted,
-              ),
+              child: const Icon(Icons.broken_image_outlined,
+                  color: AppColors.textMuted),
             ),
           ),
         ),
@@ -546,11 +619,8 @@ class _ImageThumb extends StatelessWidget {
                 color: AppColors.danger,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close_rounded,
-                size: 12,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close_rounded,
+                  size: 12, color: Colors.white),
             ),
           ),
         ),
@@ -583,18 +653,14 @@ class _AddImageButton extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
+                      strokeWidth: 2, color: AppColors.primary),
                 ),
               )
             : const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.add_photo_alternate_outlined,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.add_photo_alternate_outlined,
+                      color: AppColors.primary),
                   SizedBox(height: 4),
                   Text(
                     'Agregar',

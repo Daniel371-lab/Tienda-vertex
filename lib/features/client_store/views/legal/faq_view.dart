@@ -19,13 +19,34 @@ class FaqView extends StatelessWidget {
                 'Si tu duda no está en la lista, escribinos por WhatsApp.',
           ),
 
+          // ── PEDIDOS ────────────────────────────────────────
+          LegalSection(text: 'Pedidos'),
+
           FaqItem(
             question: '¿Cómo hago un pedido?',
             answer:
-                'Agregá los productos que quieras al carrito, tocá "Finalizar '
-                'compra", completá tus datos y confirmá el pedido. Vas a ver '
-                'los datos de transferencia en pantalla.',
+                'Agregá los productos que quieras al carrito, tocá '
+                '"Finalizar compra", completá tus datos y confirmá. En '
+                'pantalla vas a ver los datos para la transferencia.',
           ),
+          FaqItem(
+            question: '¿Puedo modificar mi pedido?',
+            answer:
+                'Sí. Una vez confirmado, tenés hasta 2 horas para escribirnos '
+                'por WhatsApp y modificar lo que necesites. Pasado ese plazo, '
+                'el pedido ya se procesa con los datos originales.',
+          ),
+          FaqItem(
+            question: '¿Puedo cancelar mi pedido?',
+            answer:
+                'Sí. Si todavía no lo despachamos, escribinos por WhatsApp '
+                'con tu número de pedido y lo cancelamos. Si ya está '
+                'despachado, podés solicitar una devolución al recibirlo.',
+          ),
+
+          // ── PAGOS ──────────────────────────────────────────
+          LegalSection(text: 'Pagos'),
+
           FaqItem(
             question: '¿Qué medios de pago aceptan?',
             answer:
@@ -36,25 +57,34 @@ class FaqView extends StatelessWidget {
           FaqItem(
             question: '¿Cómo confirmo mi pago?',
             answer:
-                'Después de transferir, podés enviarnos el comprobante por '
-                'WhatsApp o esperar a que verifiquemos la acreditación en '
-                'nuestra cuenta. Te avisamos por WhatsApp cuando esté '
-                'confirmado.',
+                'Después de transferir, envianos el comprobante por WhatsApp. '
+                'Una vez verificada la acreditación en nuestra cuenta, te '
+                'avisamos y empezamos a procesar tu pedido.',
           ),
           FaqItem(
-            question: '¿Cuánto tarda en llegar mi pedido?',
+            question: '¿Puede transferir otra persona en mi nombre?',
             answer:
-                'Los tiempos estimados son de 1 a 3 días hábiles para Gran '
-                'Asunción y de 3 a 7 días hábiles para el interior del país, '
-                'contados desde la confirmación del pago.',
+                'Sí, sin problema. Solo asegurate de que el comprobante '
+                'incluya el número de tu pedido para que podamos '
+                'identificarlo.',
+          ),
+
+          // ── ENVÍOS ─────────────────────────────────────────
+          LegalSection(text: 'Envíos'),
+
+          FaqItem(
+            question: '¿Hacen envíos a todo el país?',
+            answer:
+                'Sí, enviamos a la mayoría de las ciudades del Paraguay. En '
+                'el checkout vas a ver las localidades disponibles. Si tu '
+                'ciudad no aparece, escribinos por WhatsApp y vemos cómo '
+                'hacerlo llegar.',
           ),
           FaqItem(
-            question: '¿Hacen envíos al interior del país?',
+            question: '¿Cuánto cuesta el envío?',
             answer:
-                'Sí, enviamos a la mayoría de las ciudades del Paraguay. Si '
-                'tu ciudad no aparece en la lista del checkout, escribinos '
-                'por WhatsApp para coordinar el envío o el retiro en un '
-                'punto cercano.',
+                'Gran Asunción: ₲ 20.000. Cordillera y Paraguarí: ₲ 30.000. '
+                'Resto del interior: ₲ 35.000.',
           ),
           FaqItem(
             question: '¿Hay envío gratis?',
@@ -69,38 +99,62 @@ class FaqView extends StatelessWidget {
                 'de ₲ 300.000. En Gran Asunción no hay mínimo.',
           ),
           FaqItem(
-            question: '¿Puedo retirar en persona?',
+            question: '¿Cuánto tarda en llegar mi pedido?',
             answer:
-                'Sí, en algunas ciudades contamos con puntos de retiro. En el '
-                'checkout vas a ver marcadas las ciudades con punto de '
-                'entrega disponible.',
+                'Gran Asunción: 3 a 5 días hábiles. Interior del país: 4 a 7 '
+                'días hábiles. Los plazos se cuentan desde la confirmación '
+                'del pago.',
           ),
           FaqItem(
-            question: '¿Puedo cancelar mi pedido?',
+            question: '¿Cómo sé que mi pedido fue enviado?',
             answer:
-                'Sí. Si todavía no lo despachamos, escribinos por WhatsApp '
-                'con tu número de pedido y lo cancelamos. Si ya está '
-                'despachado, podés solicitar una devolución al recibirlo.',
+                'Cuando despachamos tu pedido, te avisamos por WhatsApp con '
+                'los datos de seguimiento.',
+          ),
+          FaqItem(
+            question: '¿Qué pasa si no estoy cuando llega el envío?',
+            answer:
+                'El envío se intenta entregar en el domicilio. Si no hay '
+                'nadie, se deja un aviso para coordinar una nueva visita o '
+                'el retiro en la sucursal más cercana.',
+          ),
+
+          // ── PRODUCTOS ──────────────────────────────────────
+          LegalSection(text: 'Productos'),
+
+          FaqItem(
+            question: '¿Los productos tienen garantía?',
+            answer:
+                'Todos nuestros productos cuentan con garantía por fallas de '
+                'fábrica. Tenés 48 horas desde la recepción del pedido para '
+                'reportar cualquier problema.',
+          ),
+
+          // ── DEVOLUCIONES ───────────────────────────────────
+          LegalSection(text: 'Devoluciones'),
+
+          FaqItem(
+            question: '¿Puedo devolver un producto?',
+            answer:
+                'Aceptamos devoluciones únicamente en caso de producto dañado, '
+                'producto incorrecto o extravío durante el envío. No aceptamos '
+                'devoluciones por cambio de opinión. Para más detalle, mirá '
+                'nuestra Política de devoluciones.',
           ),
           FaqItem(
             question: '¿Qué hago si mi producto llega dañado?',
             answer:
-                'Contactanos por WhatsApp dentro de las 48 horas de recibido '
-                'el pedido, adjuntando fotos del producto y del empaque. Te '
-                'damos una solución inmediata.',
+                'Escribinos por WhatsApp dentro de las 48 horas posteriores a '
+                'la recepción, adjuntando fotos o videos del producto y del '
+                'empaque. Te damos una solución inmediata.',
           ),
           FaqItem(
-            question: '¿Cómo sé que mi pago fue recibido?',
+            question: '¿Qué pasa si rechazo el pedido al momento de la entrega?',
             answer:
-                'Una vez que verificamos la acreditación en nuestra cuenta, te '
-                'enviamos un mensaje por WhatsApp confirmando la recepción del '
-                'pago y el inicio del proceso del pedido.',
-          ),
-          FaqItem(
-            question: '¿Puedo cambiar mi dirección de entrega?',
-            answer:
-                'Sí, siempre que el pedido no haya sido despachado. Escribinos '
-                'por WhatsApp con la nueva dirección y la actualizamos.',
+                'Si rechazás el pedido sin una causa justificada, se te '
+                'reintegra el monto del producto menos el costo del envío de '
+                'retorno. El reembolso se procesa por el mismo medio de pago '
+                'que utilizaste.',
           ),
         ],
       ),

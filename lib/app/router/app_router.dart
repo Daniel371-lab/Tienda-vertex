@@ -82,23 +82,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // ── Páginas legales (antes de :slug para que no choquen) ──
-      GoRoute(
-        path: '/nosotros',
-        builder: (context, state) => const AboutView(),
-      ),
-      GoRoute(
-        path: '/terminos',
-        builder: (context, state) => const ShippingTermsView(),
-      ),
-      GoRoute(
-        path: '/devoluciones',
-        builder: (context, state) => const ReturnsView(),
-      ),
-      GoRoute(
-        path: '/faq',
-        builder: (context, state) => const FaqView(),
-      ),
+      // ── Páginas legales ─────────────────────────────────────
+      GoRoute(path: '/nosotros', builder: (_, __) => const AboutView()),
+      GoRoute(path: '/terminos', builder: (_, __) => const ShippingTermsView()),
+      GoRoute(path: '/devoluciones', builder: (_, __) => const ReturnsView()),
+      GoRoute(path: '/faq', builder: (_, __) => const FaqView()),
 
       // ── Rutas con parámetros ────────────────────────────────
       GoRoute(
@@ -114,23 +102,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // ── Rutas admin (solo app, nunca web) ───────────────────
+      // ── Admin ───────────────────────────────────────────────
       if (!kIsWeb) ...[
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginView(),
-        ),
+        GoRoute(path: '/login', builder: (_, __) => const LoginView()),
         ShellRoute(
           builder: (context, state, child) =>
               AdminShellView(child: child),
           routes: [
-            GoRoute(
-              path: '/admin',
-              builder: (context, state) => const DashboardView(),
-            ),
+            GoRoute(path: '/admin', builder: (_, __) => const DashboardView()),
             GoRoute(
               path: '/admin/productos',
-              builder: (context, state) => const ProductManagerView(),
+              builder: (_, __) => const ProductManagerView(),
               routes: [
                 GoRoute(
                   path: 'nuevo',
@@ -150,12 +132,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
             GoRoute(
               path: '/admin/categorias',
-              builder: (context, state) => const CategoryManagerView(),
+              builder: (_, __) => const CategoryManagerView(),
               routes: [
-                GoRoute(
-                  path: 'nueva',
-                  builder: (context, state) => const CategoryFormView(),
-                ),
+                GoRoute(path: 'nueva', builder: (_, __) => const CategoryFormView()),
                 GoRoute(
                   path: ':id',
                   builder: (context, state) => CategoryFormView(
@@ -174,7 +153,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
             GoRoute(
               path: '/admin/pedidos',
-              builder: (context, state) => const OrderManagerView(),
+              builder: (_, __) => const OrderManagerView(),
               routes: [
                 GoRoute(
                   path: ':id',
@@ -184,36 +163,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-            GoRoute(
-              path: '/admin/cupones',
-              builder: (context, state) => const CouponManagerView(),
-            ),
-            GoRoute(
-              path: '/admin/blacklist',
-              builder: (context, state) => const BlacklistView(),
-            ),
-            GoRoute(
-              path: '/admin/ajustes',
-              builder: (context, state) => const SettingsView(),
-            ),
+            GoRoute(path: '/admin/cupones', builder: (_, __) => const CouponManagerView()),
+            GoRoute(path: '/admin/blacklist', builder: (_, __) => const BlacklistView()),
+            GoRoute(path: '/admin/ajustes', builder: (_, __) => const SettingsView()),
           ],
         ),
       ],
 
       // ── Tienda pública ──────────────────────────────────────
+      // Home general o explore (`/?cat=perfumes`)
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeView(),
+        builder: (context, state) {
+          final explore = state.uri.queryParameters['cat'];
+          return HomeView(
+            mode: explore != null ? HomeMode.explore : HomeMode.general,
+            exploreCategorySlug: explore,
+          );
+        },
       ),
+      // Tienda especializada (`/perfumes`)
       GoRoute(
         path: '/:slug',
         builder: (context, state) => HomeView(
+          mode: HomeMode.specialized,
           categorySlug: state.pathParameters['slug'],
         ),
       ),
+      // Subcategoría (`/perfumes/arabes`)
       GoRoute(
         path: '/:slug/:subSlug',
         builder: (context, state) => HomeView(
+          mode: HomeMode.subcategory,
           categorySlug: state.pathParameters['slug'],
           subcategorySlug: state.pathParameters['subSlug'],
         ),
@@ -222,9 +203,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Fallback ────────────────────────────────────────────
       GoRoute(
         path: '/:rest(.*)',
-        builder: (context, state) => const NotFoundView(),
+        builder: (_, __) => const NotFoundView(),
       ),
     ],
-    errorBuilder: (context, state) => const NotFoundView(),
+    errorBuilder: (_, __) => const NotFoundView(),
   );
-});
+}

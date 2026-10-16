@@ -22,7 +22,7 @@ class FirestoreService {
       query = query.where('isActive', isEqualTo: true);
     }
     final snap = await query.get();
-    final list = snap.docs.map((doc) => Category.fromFirestore(doc)).toList();
+    final list = snap.docs.map((d) => Category.fromFirestore(d)).toList();
     list.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     return list;
   }
@@ -45,9 +45,41 @@ class FirestoreService {
 
   // ── PRODUCTOS ─────────────────────────────────────────────────
 
-  Future<ProductsPage> fetchProducts({
+  /// 10 destacados del home general (`/`).
+  Future<List<Product>> fetchFeaturedGeneral({int limit = 10}) async {
+    final snap = await _db
+        .collection(ApiConstants.colProducts)
+        .where('isActive', isEqualTo: true)
+        .where('isFeaturedGeneral', isEqualTo: true)
+        .limit(limit)
+        .get();
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    products.sort((a, b) {
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
+    });
+    return products;
+  }
+
+  /// 10 destacados de una tienda especializada (`/perfumes`).
+  Future<List<Product>> fetchFeaturedByCategory({
     required String categoryId,
-    String? subcategoryId,
+    int limit = 10,
+  }) async {
+    final snap = await _db
+        .collection(ApiConstants.colProducts)
+        .where('isActive', isEqualTo: true)
+        .where('categoryId', isEqualTo: categoryId)
+        .where('isFeaturedInCategories', arrayContains: _slugOfCategoryCache[categoryId])
+        .limit(limit)
+        .get();
+    return snap.docs.map((d) => Product.fromFirestore(d)).toList();
+  }
+
+  /// Todos los productos de una categoría (`/?cat=perfumes`).
+  Future<ProductsPage> fetchAllByCategory({
+    required String categoryId,
     DocumentSnapshot? startAfter,
     int limit = pageSize,
   }) async {
@@ -56,22 +88,15 @@ class FirestoreService {
         .where('isActive', isEqualTo: true)
         .where('categoryId', isEqualTo: categoryId);
 
-    if (subcategoryId != null && subcategoryId.isNotEmpty) {
-      query = query.where('subcategoryId', isEqualTo: subcategoryId);
-    }
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
+    if (startAfter != null) query = query.startAfterDocument(startAfter);
 
     final snap = await query.limit(limit).get();
     final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
     products.sort((a, b) {
-      final aDate = a.createdAt ?? DateTime(1970);
-      final bDate = b.createdAt ?? DateTime(1970);
-      return bDate.compareTo(aDate);
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
     });
-
     return ProductsPage(
       products: products,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
@@ -79,47 +104,33 @@ class FirestoreService {
     );
   }
 
-  Future<ProductsPage> fetchAllProducts({
+  /// Todos los productos de una subcategoría (`/perfumes/arabes`).
+  Future<ProductsPage> fetchAllBySubcategory({
+    required String categoryId,
+    required String subcategoryId,
     DocumentSnapshot? startAfter,
     int limit = pageSize,
   }) async {
     Query query = _db
         .collection(ApiConstants.colProducts)
-        .where('isActive', isEqualTo: true);
+        .where('isActive', isEqualTo: true)
+        .where('categoryId', isEqualTo: categoryId)
+        .where('subcategoryId', isEqualTo: subcategoryId);
 
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
+    if (startAfter != null) query = query.startAfterDocument(startAfter);
 
     final snap = await query.limit(limit).get();
     final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
     products.sort((a, b) {
-      final aDate = a.createdAt ?? DateTime(1970);
-      final bDate = b.createdAt ?? DateTime(1970);
-      return bDate.compareTo(aDate);
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
     });
-
     return ProductsPage(
       products: products,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
       hasMore: snap.docs.length == limit,
     );
-  }
-
-  Future<List<Product>> fetchFeatured({int limit = 12}) async {
-    final snap = await _db
-        .collection(ApiConstants.colProducts)
-        .where('isActive', isEqualTo: true)
-        .where('isFeatured', isEqualTo: true)
-        .limit(limit)
-        .get();
-    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
-    products.sort((a, b) {
-      final aDate = a.createdAt ?? DateTime(1970);
-      final bDate = b.createdAt ?? DateTime(1970);
-      return bDate.compareTo(aDate);
-    });
-    return products;
   }
 
   Future<Product?> findProductById(String id) async {
@@ -145,6 +156,13 @@ class FirestoreService {
     return results;
   }
 
+  // Caché interna para slug → id. Se llena desde el controller.
+  static final Map<String, String> _slugOfCategoryCache = {};
+
+  static void registerCategorySlug(String categoryId, String slug) {
+    _slugOfCategoryCache[categoryId] = slug;
+  }
+
   // ── CUPONES ───────────────────────────────────────────────────
 
   Future<Coupon?> findCouponByCode(String code) async {
@@ -168,13 +186,13 @@ class FirestoreService {
   // ── PEDIDOS ───────────────────────────────────────────────────
 
   Future<String> createOrder(Order order) async {
-  final ref = _db.collection(ApiConstants.colOrders).doc();
-  final data = order.toMap();
-  data['id'] = ref.id;
-  data['status'] = OrderStatus.pendientePago.value;
-  await ref.set(data);
-  return ref.id;
-}
+    final ref = _db.collection(ApiConstants.colOrders).doc();
+    final data = order.toMap();
+    data['id'] = ref.id;
+    data['status'] = OrderStatus.pendientePago.value;
+    await ref.set(data);
+    return ref.id;
+  }
 
   Future<Order?> findOrderById(String id) async {
     final doc = await _db.collection(ApiConstants.colOrders).doc(id).get();
@@ -188,17 +206,15 @@ class FirestoreService {
     DocumentSnapshot? startAfter,
   }) async {
     Query query = _db.collection(ApiConstants.colOrders);
-    if (status != null) {
-      query = query.where('status', isEqualTo: status.value);
-    }
+    if (status != null) query = query.where('status', isEqualTo: status.value);
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 
     final snap = await query.limit(limit).get();
     final orders = snap.docs.map((d) => Order.fromFirestore(d)).toList();
     orders.sort((a, b) {
-      final aDate = a.createdAt ?? DateTime(1970);
-      final bDate = b.createdAt ?? DateTime(1970);
-      return bDate.compareTo(aDate);
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
     });
     return orders;
   }

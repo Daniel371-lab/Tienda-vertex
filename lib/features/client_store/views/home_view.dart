@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/constants/app_strings.dart';
-import '../../../app/router/niche_context.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
@@ -15,17 +14,20 @@ import '../widgets/drawer/smart_drawer.dart';
 import '../widgets/footer/store_footer.dart';
 import '../widgets/grid/product_grid.dart';
 import '../widgets/header/glass_header.dart';
-import '../widgets/subcategories/subcategory_chips.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({
     super.key,
+    this.mode = HomeMode.general,
     this.categorySlug,
     this.subcategorySlug,
+    this.exploreCategorySlug,
   });
 
+  final HomeMode mode;
   final String? categorySlug;
   final String? subcategorySlug;
+  final String? exploreCategorySlug;
 
   @override
   ConsumerState<HomeView> createState() => _HomeViewState();
@@ -43,11 +45,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final notifier = ref.read(storeControllerProvider.notifier);
       await notifier.loadCategories();
-      await notifier.applyNiche(
-        NicheContext(
-          categorySlug: widget.categorySlug,
-          subcategorySlug: widget.subcategorySlug,
-        ),
+      await notifier.applyMode(
+        mode: widget.mode,
+        categorySlug: widget.categorySlug,
+        subcategorySlug: widget.subcategorySlug,
+        exploreCategorySlug: widget.exploreCategorySlug,
       );
     });
   }
@@ -55,13 +57,15 @@ class _HomeViewState extends ConsumerState<HomeView> {
   @override
   void didUpdateWidget(HomeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.categorySlug != widget.categorySlug ||
-        oldWidget.subcategorySlug != widget.subcategorySlug) {
-      ref.read(storeControllerProvider.notifier).applyNiche(
-            NicheContext(
-              categorySlug: widget.categorySlug,
-              subcategorySlug: widget.subcategorySlug,
-            ),
+    if (oldWidget.mode != widget.mode ||
+        oldWidget.categorySlug != widget.categorySlug ||
+        oldWidget.subcategorySlug != widget.subcategorySlug ||
+        oldWidget.exploreCategorySlug != widget.exploreCategorySlug) {
+      ref.read(storeControllerProvider.notifier).applyMode(
+            mode: widget.mode,
+            categorySlug: widget.categorySlug,
+            subcategorySlug: widget.subcategorySlug,
+            exploreCategorySlug: widget.exploreCategorySlug,
           );
     }
   }
@@ -110,9 +114,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  void _openSearch() {
-    context.go('/buscar');
-  }
+  void _openSearch() => context.go('/buscar');
 
   Future<void> _addToCart(Product product) async {
     await ref.read(cartControllerProvider.notifier).addProduct(product);
@@ -156,14 +158,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
               child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: () async {
-                  final notifier =
-                      ref.read(storeControllerProvider.notifier);
+                  final notifier = ref.read(storeControllerProvider.notifier);
                   await notifier.loadCategories();
-                  await notifier.applyNiche(
-                    NicheContext(
-                      categorySlug: widget.categorySlug,
-                      subcategorySlug: widget.subcategorySlug,
-                    ),
+                  await notifier.applyMode(
+                    mode: widget.mode,
+                    categorySlug: widget.categorySlug,
+                    subcategorySlug: widget.subcategorySlug,
+                    exploreCategorySlug: widget.exploreCategorySlug,
                   );
                 },
                 child: CustomScrollView(
@@ -184,29 +185,34 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onLogoTap: _goToHome,
                         onCartTap: _openCart,
                         onSearchTap: _openSearch,
-                        showSearch: isWide,
+                        // Búsqueda visible solo en subcategoría o en desktop
+                        showSearch: isWide || state.showSearchAndFilters,
                       ),
                     ),
 
+                    // Título de la pantalla
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                         child: Text(
-                          _titleFor(state.activeCategory?.name),
-                          style:
-                              Theme.of(context).textTheme.headlineMedium,
+                          _titleFor(state),
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
                       ),
                     ),
 
-                    const SliverToBoxAdapter(
-                      child: SubcategoryChips(),
-                    ),
+                    // Chips de subcategoría — solo en subcategoría
+                    if (state.mode == HomeMode.subcategory)
+                      const SliverToBoxAdapter(child: SizedBox.shrink()),
 
+                    // Grid o estado vacío
                     if (state.isLoadingProducts && state.products.isEmpty)
                       ProductGrid(
                         products: const [],
                         isLoading: true,
+                        sortOption: SortOption.recent,
+                        onSortChanged: (_) {},
+                        showSortButton: false,
                         onTap: (_) {},
                         onAddToCart: (_) {},
                       )
@@ -216,11 +222,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         child: _EmptyState(
                           onRetry: () => ref
                               .read(storeControllerProvider.notifier)
-                              .applyNiche(
-                                NicheContext(
-                                  categorySlug: widget.categorySlug,
-                                  subcategorySlug: widget.subcategorySlug,
-                                ),
+                              .applyMode(
+                                mode: widget.mode,
+                                categorySlug: widget.categorySlug,
+                                subcategorySlug: widget.subcategorySlug,
+                                exploreCategorySlug: widget.exploreCategorySlug,
                               ),
                         ),
                       )
@@ -228,6 +234,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       ProductGrid(
                         products: state.visibleProducts,
                         isLoading: false,
+                        sortOption: ref.watch(sortOptionProvider),
+                        showSortButton: state.mode == HomeMode.subcategory,
+                        onSortChanged: (option) {
+                          ref.read(sortOptionProvider.notifier).state = option;
+                        },
                         onTap: (p) => context.go('/producto/${p.id}'),
                         onAddToCart: _addToCart,
                       ),
@@ -259,21 +270,32 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  String _titleFor(String? categoryName) {
-    if (categoryName == null || categoryName.isEmpty) {
-      return AppStrings.allProducts;
+  String _titleFor(StoreState state) {
+    // En general/explore, mostramos título simple
+    if (state.mode == HomeMode.general) return AppStrings.allProducts;
+    if (state.mode == HomeMode.explore) {
+      return state.activeCategory?.name ?? AppStrings.allProducts;
     }
-    return categoryName;
+    // En specialized y subcategory, mostramos el nombre de la categoría
+    final catName = state.activeCategory?.name ?? '';
+    if (state.mode == HomeMode.subcategory && state.activeSubcategory != null) {
+      return '${catName} · ${state.activeSubcategory!.name}';
+    }
+    return catName.isEmpty ? AppStrings.allProducts : catName;
   }
 
   void _goToHome() {
     final notifier = ref.read(storeControllerProvider.notifier);
     notifier.selectSubcategory(null);
-    if (widget.categorySlug != null) {
+
+    // Si estamos en tienda especializada o subcategoría, el logo va a la tienda
+    if (widget.mode == HomeMode.specialized ||
+        widget.mode == HomeMode.subcategory) {
       context.go('/${widget.categorySlug}');
     } else {
       context.go('/');
     }
+
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
