@@ -38,7 +38,6 @@ class SmartDrawer extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Encabezado ──────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
               child: isPersistent
@@ -62,17 +61,11 @@ class SmartDrawer extends ConsumerWidget {
             ),
             const Divider(),
 
-            // ── Contenido según modo ────────────────────────
             Expanded(
               child: state.showSubcategoriesInDrawer
                   ? _SubcategoriesList(
                       state: state,
                       onNavigate: onNavigate,
-                      onBackToGlobal: () {
-                        notifier.selectSubcategory(null);
-                        context.go('/');
-                        onNavigate?.call();
-                      },
                       onSelectSubcategory: (sub) {
                         notifier.selectSubcategory(sub.id);
                         context.go(
@@ -82,13 +75,14 @@ class SmartDrawer extends ConsumerWidget {
                       },
                       onSelectAll: () {
                         notifier.selectSubcategory(null);
-                        context.go('/${state.activeCategory!.slug}');
+                        context.go('/${state.activeCategory!.slug}/todos');
                         onNavigate?.call();
                       },
                     )
                   : _CategoriesList(
                       categories: state.categories,
                       isLoading: state.isLoadingCategories,
+                      activeCategoryId: state.activeCategory?.id,
                       onSelect: (slug) {
                         notifier.selectSubcategory(null);
                         context.go('/?cat=$slug');
@@ -97,7 +91,6 @@ class SmartDrawer extends ConsumerWidget {
                     ),
             ),
 
-            // ── Pie ─────────────────────────────────────────
             const Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -123,11 +116,13 @@ class _CategoriesList extends StatelessWidget {
   const _CategoriesList({
     required this.categories,
     required this.isLoading,
+    required this.activeCategoryId,
     required this.onSelect,
   });
 
   final List<Category> categories;
   final bool isLoading;
+  final String? activeCategoryId;
   final void Function(String slug) onSelect;
 
   @override
@@ -169,6 +164,7 @@ class _CategoriesList extends StatelessWidget {
           _DrawerTile(
             label: cat.name,
             icon: _iconForCategory(cat.icon),
+            selected: activeCategoryId == cat.id,
             onTap: () => onSelect(cat.slug),
           ),
       ],
@@ -183,14 +179,12 @@ class _CategoriesList extends StatelessWidget {
 class _SubcategoriesList extends StatelessWidget {
   const _SubcategoriesList({
     required this.state,
-    required this.onBackToGlobal,
     required this.onSelectSubcategory,
     required this.onSelectAll,
     this.onNavigate,
   });
 
   final StoreState state;
-  final VoidCallback onBackToGlobal;
   final void Function(Subcategory) onSelectSubcategory;
   final VoidCallback onSelectAll;
   final VoidCallback? onNavigate;
@@ -203,15 +197,6 @@ class _SubcategoriesList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        _DrawerTile(
-          label: AppStrings.backToAllCategories,
-          icon: Icons.arrow_back_rounded,
-          iconColor: AppColors.primary,
-          textColor: AppColors.primary,
-          onTap: onBackToGlobal,
-        ),
-        const Divider(),
-
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Text(
@@ -225,7 +210,7 @@ class _SubcategoriesList extends StatelessWidget {
         ),
 
         _DrawerTile(
-          label: AppStrings.filterAll,
+          label: 'Todos',
           icon: Icons.grid_view_rounded,
           selected: selectedId == null,
           onTap: onSelectAll,

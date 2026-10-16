@@ -185,25 +185,21 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onLogoTap: _goToHome,
                         onCartTap: _openCart,
                         onSearchTap: _openSearch,
-                        // Búsqueda visible solo en subcategoría o en desktop
                         showSearch: isWide || state.showSearchAndFilters,
                       ),
                     ),
 
-                    // Título de la pantalla
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                        child: Text(
-                          _titleFor(state),
-                          style: Theme.of(context).textTheme.headlineMedium,
+                    // Título de la pantalla (solo si aplica)
+                    if (_titleFor(state).isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                          child: Text(
+                            _titleFor(state),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                         ),
                       ),
-                    ),
-
-                    // Chips de subcategoría — solo en subcategoría
-                    if (state.mode == HomeMode.subcategory)
-                      const SliverToBoxAdapter(child: SizedBox.shrink()),
 
                     // Grid o estado vacío
                     if (state.isLoadingProducts && state.products.isEmpty)
@@ -235,7 +231,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         products: state.visibleProducts,
                         isLoading: false,
                         sortOption: ref.watch(sortOptionProvider),
-                        showSortButton: state.mode == HomeMode.subcategory,
+                        showSortButton: state.showSearchAndFilters,
                         onSortChanged: (option) {
                           ref.read(sortOptionProvider.notifier).state = option;
                         },
@@ -270,25 +266,39 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
+  /// Devuelve el título a mostrar en el SliverAppBar.
+  /// Vacío = no mostrar título (modo general y explore).
   String _titleFor(StoreState state) {
-    // En general/explore, mostramos título simple
-    if (state.mode == HomeMode.general) return AppStrings.allProducts;
-    if (state.mode == HomeMode.explore) {
-      return state.activeCategory?.name ?? AppStrings.allProducts;
+    // General (`/`): sin título
+    if (state.mode == HomeMode.general) return '';
+
+    // Explore (`/?cat=perfumes`): sin título
+    if (state.mode == HomeMode.explore) return '';
+
+    // Specialized (`/perfumes`): nombre de la tienda
+    if (state.mode == HomeMode.specialized) {
+      return state.activeCategory?.name ?? '';
     }
-    // En specialized y subcategory, mostramos el nombre de la categoría
-    final catName = state.activeCategory?.name ?? '';
-    if (state.mode == HomeMode.subcategory && state.activeSubcategory != null) {
-      return '${catName} · ${state.activeSubcategory!.name}';
+
+    // Subcategory (`/perfumes/arabes`): "Categoría · Subcategoría"
+    if (state.mode == HomeMode.subcategory) {
+      final catName = state.activeCategory?.name ?? '';
+      if (state.activeSubcategory != null) {
+        return '$catName · ${state.activeSubcategory!.name}';
+      }
+      // "Todos" de la categoría → solo el nombre
+      return catName;
     }
-    return catName.isEmpty ? AppStrings.allProducts : catName;
+
+    return '';
   }
 
   void _goToHome() {
     final notifier = ref.read(storeControllerProvider.notifier);
     notifier.selectSubcategory(null);
 
-    // Si estamos en tienda especializada o subcategoría, el logo va a la tienda
+    // En tienda especializada o subcategoría, el logo va a la tienda del nicho.
+    // En general/explore, va al home general.
     if (widget.mode == HomeMode.specialized ||
         widget.mode == HomeMode.subcategory) {
       context.go('/${widget.categorySlug}');

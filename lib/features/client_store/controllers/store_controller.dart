@@ -7,18 +7,10 @@ import '../../../services/analytics/analytics_service.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../../../services/firebase/firestore_service.dart';
 
-/// Modo de la tienda según la URL.
 enum HomeMode {
-  /// `/` — home general, 10 destacados generales.
   general,
-
-  /// `/?cat=perfumes` — explora categoría, todos los productos.
   explore,
-
-  /// `/perfumes` — tienda especializada, 10 destacados de la categoría.
   specialized,
-
-  /// `/perfumes/arabes` — subcategoría, todos los productos.
   subcategory,
 }
 
@@ -51,10 +43,10 @@ class StoreState {
   final bool isLoadingMore;
   final String? error;
 
-  /// ¿El buscador y filtros están visibles?
+  /// Buscador y filtros solo en subcategoría real (no en "todos")
   bool get showSearchAndFilters => mode == HomeMode.subcategory;
 
-  /// ¿El drawer debe mostrar subcategorías en vez de categorías?
+  /// Drawer muestra subcategorías en tiendas especializadas
   bool get showSubcategoriesInDrawer =>
       mode == HomeMode.specialized || mode == HomeMode.subcategory;
 
@@ -124,7 +116,6 @@ class StoreController extends StateNotifier<StoreState> {
     state = state.copyWith(isLoadingCategories: true, clearError: true);
     try {
       final cats = await _fs.fetchCategories();
-      // Registramos slugs para lookups internos.
       for (final c in cats) {
         FirestoreService.registerCategorySlug(c.id, c.slug);
       }
@@ -168,10 +159,11 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  // ── GENERAL ────────────────────────────────────────────────
-
   Future<void> _loadGeneral() async {
-    state = state.copyWith(clearActiveCategory: true, clearActiveSubcategory: true);
+    state = state.copyWith(
+      clearActiveCategory: true,
+      clearActiveSubcategory: true,
+    );
     try {
       final products = await _fs.fetchFeaturedGeneral(limit: 10);
       state = state.copyWith(products: products, isLoadingProducts: false);
@@ -183,8 +175,6 @@ class StoreController extends StateNotifier<StoreState> {
       );
     }
   }
-
-  // ── EXPLORE (/?cat=perfumes) ───────────────────────────────
 
   Future<void> _loadExplore(String? categorySlug) async {
     if (categorySlug == null) {
@@ -217,8 +207,6 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  // ── SPECIALIZED (/perfumes) ────────────────────────────────
-
   Future<void> _loadSpecialized(String? categorySlug) async {
     if (categorySlug == null) {
       await _loadGeneral();
@@ -248,8 +236,6 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  // ── SUBCATEGORY (/perfumes/arabes) ─────────────────────────
-
   Future<void> _loadSubcategory(
     String? categorySlug,
     String? subcategorySlug,
@@ -263,10 +249,37 @@ class StoreController extends StateNotifier<StoreState> {
       await _loadGeneral();
       return;
     }
+
+    // Caso especial: "todos" → todos los productos de la categoría
+    if (subcategorySlug == 'todos') {
+      state = state.copyWith(
+        activeCategory: category,
+        clearActiveSubcategory: true,
+        clearSelectedSubcategory: true,
+      );
+      try {
+        final page = await _fs.fetchAllByCategory(categoryId: category.id);
+        state = state.copyWith(
+          products: page.products,
+          lastDoc: page.lastDoc,
+          hasMore: page.hasMore,
+          isLoadingProducts: false,
+        );
+      } catch (e) {
+        state = state.copyWith(
+          isLoadingProducts: false,
+          error: 'No pudimos cargar los productos.',
+        );
+      }
+      return;
+    }
+
+    // Subcategoría real
     Subcategory? sub;
     if (subcategorySlug != null) {
       try {
-        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
+        sub = category.subcategories
+            .firstWhere((s) => s.slug == subcategorySlug);
       } catch (_) {
         sub = null;
       }
@@ -295,8 +308,6 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  // ── HELPERS ────────────────────────────────────────────────
-
   void selectSubcategory(String? subcategoryId) {
     if (subcategoryId == null) {
       state = state.copyWith(
@@ -321,10 +332,11 @@ class StoreController extends StateNotifier<StoreState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       final ProductsPage page;
-      if (state.mode == HomeMode.subcategory) {
+      if (state.mode == HomeMode.subcategory &&
+          state.activeSubcategory != null) {
         page = await _fs.fetchAllBySubcategory(
           categoryId: state.activeCategory!.id,
-          subcategoryId: state.activeSubcategory?.id ?? '',
+          subcategoryId: state.activeSubcategory!.id,
           startAfter: state.lastDoc,
         );
       } else {
