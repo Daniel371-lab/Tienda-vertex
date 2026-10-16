@@ -36,7 +36,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
       children: [
         Column(
           children: [
-            // ── Barra de búsqueda + filtros ─────────────────
             Container(
               color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -89,8 +88,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
                 ],
               ),
             ),
-
-            // ── Lista ──────────────────────────────────────
             Expanded(
               child: state.isLoading
                   ? const Center(
@@ -125,8 +122,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
                                       '/admin/productos/${products[i].id}'),
                                   onToggleActive: () =>
                                       _toggleActive(products[i]),
-                                  onToggleFeatured: () =>
-                                      _toggleFeatured(products[i]),
                                   onDelete: () =>
                                       _confirmDelete(products[i]),
                                 ),
@@ -136,7 +131,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
           ],
         ),
 
-        // ── FABs manuales dentro del Stack ──────────────────
         Positioned(
           right: 16,
           bottom: 16,
@@ -175,13 +169,6 @@ class _ProductManagerViewState extends ConsumerState<ProductManagerView> {
     final ok = await ref
         .read(adminProductsControllerProvider.notifier)
         .toggleActive(p);
-    if (!ok && mounted) _snack('No se pudo actualizar');
-  }
-
-  Future<void> _toggleFeatured(Product p) async {
-    final ok = await ref
-        .read(adminProductsControllerProvider.notifier)
-        .toggleFeatured(p);
     if (!ok && mounted) _snack('No se pudo actualizar');
   }
 
@@ -287,18 +274,19 @@ class _ProductTile extends StatelessWidget {
     required this.product,
     required this.onEdit,
     required this.onToggleActive,
-    required this.onToggleFeatured,
     required this.onDelete,
   });
 
   final Product product;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
-  final VoidCallback onToggleFeatured;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final hasFeatured = product.isFeaturedGeneral ||
+        product.isFeaturedInCategories.isNotEmpty;
+
     return InkWell(
       onTap: onEdit,
       borderRadius: BorderRadius.circular(12),
@@ -309,159 +297,130 @@ class _ProductTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.border),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(10),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.image_outlined,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: AppColors.textMuted,
+                  const SizedBox(height: 4),
+                  Text(
+                    CurrencyFormatter.format(product.price),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
                     children: [
-                      Text(
-                        product.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product.isActive
+                              ? AppColors.success.withOpacity(0.15)
+                              : AppColors.textMuted.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          product.isActive ? 'Activo' : 'Inactivo',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: product.isActive
+                                ? AppColors.success
+                                : AppColors.textMuted,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        CurrencyFormatter.format(product.price),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: product.isActive
-                                  ? AppColors.success.withOpacity(0.15)
-                                  : AppColors.textMuted.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              product.isActive ? 'Activo' : 'Inactivo',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: product.isActive
-                                    ? AppColors.success
-                                    : AppColors.textMuted,
-                              ),
+                      if (hasFeatured)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Destacado',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
                             ),
                           ),
-                          if (product.isFeatured) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Destacado',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              onSelected: (v) {
+                switch (v) {
+                  case 'active':
+                    onToggleActive();
+                    break;
+                  case 'delete':
+                    onDelete();
+                    break;
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'active',
+                  child: Row(
+                    children: [
+                      Icon(
+                        product.isActive
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 18,
                       ),
+                      const SizedBox(width: 8),
+                      Text(product.isActive ? 'Desactivar' : 'Activar'),
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded),
-                  onSelected: (v) {
-                    switch (v) {
-                      case 'active':
-                        onToggleActive();
-                        break;
-                      case 'featured':
-                        onToggleFeatured();
-                        break;
-                      case 'delete':
-                        onDelete();
-                        break;
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'active',
-                      child: Row(
-                        children: [
-                          Icon(
-                            product.isActive
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(product.isActive
-                              ? 'Desactivar'
-                              : 'Activar'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'featured',
-                      child: Row(
-                        children: [
-                          Icon(
-                            product.isFeatured
-                                ? Icons.star_border_rounded
-                                : Icons.star_rounded,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(product.isFeatured
-                              ? 'Quitar destacado'
-                              : 'Marcar destacado'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline_rounded,
-                              size: 18, color: AppColors.danger),
-                          SizedBox(width: 8),
-                          Text('Eliminar',
-                              style:
-                                  TextStyle(color: AppColors.danger)),
-                        ],
-                      ),
-                    ),
-                  ],
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded,
+                          size: 18, color: AppColors.danger),
+                      SizedBox(width: 8),
+                      Text('Eliminar',
+                          style: TextStyle(color: AppColors.danger)),
+                    ],
+                  ),
                 ),
               ],
             ),

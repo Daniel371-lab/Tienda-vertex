@@ -19,6 +19,7 @@ import '../../features/admin_cpanel/views/product_form_view.dart';
 import '../../features/admin_cpanel/views/product_manager_view.dart';
 import '../../features/admin_cpanel/views/settings_view.dart';
 import '../../features/admin_cpanel/views/subcategory_manager_view.dart';
+import '../../features/client_store/controllers/store_controller.dart';
 import '../../features/client_store/views/home_view.dart';
 import '../../features/client_store/views/legal/about_view.dart';
 import '../../features/client_store/views/legal/faq_view.dart';

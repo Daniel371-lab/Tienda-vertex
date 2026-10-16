@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../app/router/niche_context.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
@@ -10,8 +9,6 @@ import '../controllers/cart_controller.dart';
 import '../controllers/store_controller.dart';
 import '../widgets/grid/product_grid.dart';
 
-/// Búsqueda client-side sobre el catálogo ya cargado.
-/// Cero lecturas extra a Firestore.
 class SearchView extends ConsumerStatefulWidget {
   const SearchView({super.key, this.initialQuery});
   final String? initialQuery;
@@ -32,8 +29,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(storeControllerProvider.notifier).loadCategories();
-      await ref.read(storeControllerProvider.notifier).applyNiche(
-            const NicheContext(),
+      // Cargamos todos los productos como modo "explore" sin categoría
+      await ref.read(storeControllerProvider.notifier).applyMode(
+            mode: HomeMode.explore,
+            exploreCategorySlug: null,
           );
     });
   }
@@ -69,9 +68,11 @@ class _SearchViewState extends ConsumerState<SearchView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(storeControllerProvider);
+    final sortOption = ref.watch(sortOptionProvider);
     final results = _filter(state.products);
 
     return Scaffold(
+      backgroundColor: AppColors.scaffold,
       body: SafeArea(
         child: Column(
           children: [
@@ -128,6 +129,13 @@ class _SearchViewState extends ConsumerState<SearchView> {
                             ProductGrid(
                               products: results,
                               isLoading: false,
+                              sortOption: sortOption,
+                              showSortButton: true,
+                              onSortChanged: (option) {
+                                ref
+                                    .read(sortOptionProvider.notifier)
+                                    .state = option;
+                              },
                               onTap: (p) =>
                                   context.go('/producto/${p.id}'),
                               onAddToCart: _addToCart,
