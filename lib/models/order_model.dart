@@ -76,6 +76,8 @@ class Order {
     this.updatedAt,
     this.paidAt,
     this.confirmedByUid,
+    this.supplierCost = 0,
+    this.realShippingCost = 0,
   });
 
   final String id;
@@ -99,8 +101,15 @@ class Order {
   final DateTime? updatedAt;
   final DateTime? paidAt;
   final String? confirmedByUid;
+  
+  // NUEVOS CAMPOS
+  final int supplierCost;
+  final int realShippingCost;
 
   int get itemCount => items.fold(0, (sum, it) => sum + it.quantity);
+
+  /// Ganancia neta real (Ingreso total - costo proveedor - costo envío)
+  int get netProfit => total - supplierCost - realShippingCost;
 
   String get shortId =>
       id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
@@ -135,6 +144,8 @@ class Order {
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
         paidAt: (map['paidAt'] as Timestamp?)?.toDate(),
         confirmedByUid: map['confirmedByUid'] as String?,
+        supplierCost: (map['supplierCost'] as num?)?.toInt() ?? 0,
+        realShippingCost: (map['realShippingCost'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toMap() => {
@@ -160,6 +171,8 @@ class Order {
         'updatedAt': FieldValue.serverTimestamp(),
         'paidAt': paidAt != null ? Timestamp.fromDate(paidAt!) : null,
         'confirmedByUid': confirmedByUid,
+        'supplierCost': supplierCost,
+        'realShippingCost': realShippingCost,
       };
 
   Order copyWith({
@@ -181,6 +194,8 @@ class Order {
     String? notes,
     DateTime? paidAt,
     String? confirmedByUid,
+    int? supplierCost,
+    int? realShippingCost,
   }) =>
       Order(
         id: id,
@@ -204,5 +219,7 @@ class Order {
         updatedAt: updatedAt,
         paidAt: paidAt ?? this.paidAt,
         confirmedByUid: confirmedByUid ?? this.confirmedByUid,
+        supplierCost: supplierCost ?? this.supplierCost,
+        realShippingCost: realShippingCost ?? this.realShippingCost,
       );
 }

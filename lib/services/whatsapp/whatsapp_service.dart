@@ -4,11 +4,9 @@ import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/phone_validator.dart';
 import '../../models/order_model.dart';
 
-/// Genera enlaces WhatsApp con mensajes estructurados.
 class WhatsappService {
   const WhatsappService();
 
-  /// Abre el chat con el número oficial de la tienda.
   Future<bool> sendOrderToStore({
     required Order order,
     required String storeWhatsappNumber,
@@ -34,7 +32,6 @@ class WhatsappService {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  /// Abre WhatsApp con el cliente, con un mensaje según el nuevo estado.
   Future<bool> contactCustomerAboutStatus({
     required Order order,
     required OrderStatus newStatus,
@@ -53,7 +50,6 @@ class WhatsappService {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  /// Abre WhatsApp con un mensaje libre hacia un número.
   Future<bool> openChat({
     required String phone,
     required String message,
@@ -69,8 +65,6 @@ class WhatsappService {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  /// Construye el mensaje con los datos completos del pedido.
-  /// Se usa cuando el cliente envía el comprobante.
   String buildOrderMessage({
     required Order order,
     String? couponCode,
@@ -122,11 +116,6 @@ class WhatsappService {
     return buffer.toString();
   }
 
-  /// Construye el mensaje que se envía al cliente cuando cambia el estado.
-  ///
-  /// Los textos son desde la perspectiva del cliente:
-  /// la tienda es el vendedor y no se mencionan proveedores,
-  /// transportadoras específicas ni números de guía.
   String buildStatusMessage(Order order, OrderStatus newStatus) {
     final name = order.customerName.split(' ').first;
     final id = order.shortId;
@@ -139,24 +128,11 @@ class WhatsappService {
             'Estamos preparando tu compra. Te avisamos cuando esté en camino.\n\n'
             'Gracias por confiar en Tienda Vertex.';
 
-      case OrderStatus.comprandoProveedor:
-        // Este estado es interno. Al cliente se le comunica como
-        // "preparando tu pedido" sin más detalle.
-        return 'Hola $name 👋\n\n'
-            '📦 Estamos preparando tu pedido #$id.\n\n'
-            'Te avisamos en cuanto esté listo para el envío.';
-
-      case OrderStatus.listoDespacho:
-        return 'Hola $name 👋\n\n'
-            '✅ Tu pedido #$id ya está listo y empacado.\n\n'
-            'En las próximas horas lo enviamos a tu dirección. '
-            'Te avisamos cuando salga.';
-
       case OrderStatus.despachado:
         return 'Hola $name 👋\n\n'
             '🚚 Tu pedido #$id ya está en camino.\n\n'
             'En breve lo recibís en ${order.city}. Si necesitamos '
-            'contactarte para coordinar la entrega, lo haremos por este medio.\n\n'
+            'contactarte para coordinar la entrega, lo haremos por el numero que nos dejaste.\n\n'
             'Gracias por tu paciencia.';
 
       case OrderStatus.entregado:
@@ -172,9 +148,8 @@ class WhatsappService {
             'las próximas 48 horas hábiles.\n\n'
             'Cualquier consulta, quedamos a disposición.';
 
-      case OrderStatus.pendientePago:
-        // Este mensaje no se envía nunca al cliente desde este flujo.
-        return '';
+      default:
+        return ''; // Comprando proveedor y Listo despacho no envían nada
     }
   }
 }

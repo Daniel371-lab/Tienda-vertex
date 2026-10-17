@@ -67,6 +67,12 @@ class _KpiGrid extends StatelessWidget {
         color: AppColors.success,
       ),
       _Kpi(
+        icon: Icons.trending_up_rounded,
+        label: 'Ganancia neta hoy',
+        value: CurrencyFormatter.format(data.profitToday),
+        color: data.profitToday >= 0 ? AppColors.success : AppColors.danger,
+      ),
+      _Kpi(
         icon: Icons.hourglass_empty_rounded,
         label: 'Pendientes de pago',
         value: '${data.ordersPendingPayment}',
@@ -152,10 +158,10 @@ class _KpiCard extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   kpi.value,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                    color: kpi.color,
                     height: 1.1,
                   ),
                 ),

@@ -164,34 +164,35 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
             const SizedBox(height: 16),
 
             _Section(
-              title: 'Pago',
+              title: 'Pago y Costos',
               icon: Icons.receipt_outlined,
               children: [
                 _SummaryRow(
-                  label: 'Subtotal',
-                  value: CurrencyFormatter.format(o.subtotal),
-                ),
-                _SummaryRow(
-                  label: 'Envío',
-                  value: o.shippingCost == 0
-                      ? 'Gratis'
-                      : CurrencyFormatter.format(o.shippingCost),
-                  valueColor: o.shippingCost == 0
-                      ? AppColors.success
-                      : null,
-                ),
-                if (o.discount > 0)
-                  _SummaryRow(
-                    label: 'Descuento ${o.couponCode ?? ""}',
-                    value: '-${CurrencyFormatter.format(o.discount)}',
-                    valueColor: AppColors.success,
-                  ),
-                const Divider(height: 16),
-                _SummaryRow(
-                  label: 'Total',
+                  label: 'Ingreso (Cliente pagó)',
                   value: CurrencyFormatter.format(o.total),
                   bold: true,
                 ),
+                if (o.supplierCost > 0)
+                  _SummaryRow(
+                    label: 'Costo Proveedor',
+                    value: '-${CurrencyFormatter.format(o.supplierCost)}',
+                    valueColor: AppColors.danger,
+                  ),
+                if (o.realShippingCost > 0)
+                  _SummaryRow(
+                    label: 'Costo Envío',
+                    value: '-${CurrencyFormatter.format(o.realShippingCost)}',
+                    valueColor: AppColors.danger,
+                  ),
+                if (o.supplierCost > 0 || o.realShippingCost > 0) ...[
+                  const Divider(height: 16),
+                  _SummaryRow(
+                    label: 'Ganancia Neta',
+                    value: CurrencyFormatter.format(o.netProfit),
+                    bold: true,
+                    valueColor: o.netProfit >= 0 ? AppColors.success : AppColors.danger,
+                  ),
+                ]
               ],
             ),
 
@@ -256,14 +257,31 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     final o = _order;
     if (o == null) return;
 
+    int? supplierCost;
+    int? realShippingCost;
+
+    // Pedir monto si corresponde
+    if (newStatus == OrderStatus.comprandoProveedor) {
+      supplierCost = await _showCostDialog(
+        title: 'Costo del proveedor',
+        hint: 'Monto pagado (₲)',
+      );
+      if (supplierCost == null) return; // Canceló
+    }
+
+    if (newStatus == OrderStatus.despachado) {
+      realShippingCost = await _showCostDialog(
+        title: 'Costo de envío',
+        hint: 'Monto pagado al courier (₲)',
+      );
+      if (realShippingCost == null) return; // Canceló
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: Text('Marcar como "${newStatus.label}"'),
-        content: const Text(
-          'Se guardará el nuevo estado y podrás enviar un mensaje '
-          'al cliente por WhatsApp con la actualización.',
-        ),
+        content: const Text('Se guardará el nuevo estado.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(false),
@@ -283,6 +301,8 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     final ok = await ctrl.updateStatus(
       orderId: o.id,
       newStatus: newStatus,
+      supplierCost: supplierCost,
+      realShippingCost: realShippingCost,
     );
 
     if (!mounted) return;
@@ -301,39 +321,78 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     await _load();
     if (!mounted) return;
 
-    final sendWa = await showDialog<bool>(
+    // Solo preguntamos por WhatsApp si el mensaje no está vacío
+    final wa = ref.read(whatsappServiceProvider);
+    final msg = wa.buildStatusMessage(o, newStatus);
+    
+    if (msg.isNotEmpty) {
+      final sendWa = await showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Estado actualizado'),
+          content: Text(
+            '¿Querés avisarle al cliente por WhatsApp que su pedido '
+            'ahora está "${newStatus.label}"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: const Text('Después'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              icon: const Icon(Icons.chat_rounded, size: 18),
+              label: const Text('Enviar WhatsApp'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.whatsapp,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (sendWa == true && mounted) {
+        final updated = o.copyWith(status: newStatus);
+        await wa.contactCustomerAboutStatus(
+          order: updated,
+          newStatus: newStatus,
+        );
+      }
+    }
+  }
+
+  Future<int?> _showCostDialog({
+    required String title,
+    required String hint,
+  }) async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<int>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Estado actualizado'),
-        content: Text(
-          '¿Querés avisarle al cliente por WhatsApp que su pedido '
-          'ahora está "${newStatus.label}"?',
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(hintText: hint),
+          autofocus: true,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text('Después'),
+            onPressed: () => Navigator.of(dialogCtx).pop(null),
+            child: const Text('Cancelar'),
           ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            icon: const Icon(Icons.chat_rounded, size: 18),
-            label: const Text('Enviar WhatsApp'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.whatsapp,
-            ),
+          FilledButton(
+            onPressed: () {
+              final val = int.tryParse(ctrl.text);
+              Navigator.of(dialogCtx).pop(val);
+            },
+            child: const Text('Guardar'),
           ),
         ],
       ),
     );
-
-    if (sendWa == true && mounted) {
-      final wa = ref.read(whatsappServiceProvider);
-      final updated = o.copyWith(status: newStatus);
-      await wa.contactCustomerAboutStatus(
-        order: updated,
-        newStatus: newStatus,
-      );
-    }
+    return result;
   }
 
   Future<void> _contactViaWhatsapp(Order o) async {
@@ -671,8 +730,7 @@ class _SummaryRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              color:
-                  bold ? AppColors.textPrimary : AppColors.textSecondary,
+              color: bold ? AppColors.textPrimary : AppColors.textSecondary,
             ),
           ),
           Text(

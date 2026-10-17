@@ -76,9 +76,7 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
       final db = _ref.read(firestoreInstanceProvider);
       final snap = await db.collection('orders').limit(200).get();
 
-      final orders = snap.docs
-          .map((d) => Order.fromFirestore(d))
-          .toList()
+      final orders = snap.docs.map((d) => Order.fromFirestore(d)).toList()
         ..sort((a, b) {
           final aD = a.createdAt ?? DateTime(1970);
           final bD = b.createdAt ?? DateTime(1970);
@@ -107,9 +105,11 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
   Future<bool> updateStatus({
     required String orderId,
     required OrderStatus newStatus,
+    int? supplierCost,
+    int? realShippingCost,
   }) async {
     try {
-      final db = _ref.read(firestoreInstanceProvider);
+      final db = _ref.read(firebaseInstanceProvider);
       final update = <String, dynamic>{
         'status': newStatus.value,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -117,6 +117,12 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
 
       if (newStatus == OrderStatus.pagado) {
         update['paidAt'] = FieldValue.serverTimestamp();
+      }
+      if (supplierCost != null) {
+        update['supplierCost'] = supplierCost;
+      }
+      if (realShippingCost != null) {
+        update['realShippingCost'] = realShippingCost;
       }
 
       await db.collection('orders').doc(orderId).update(update);

@@ -19,6 +19,7 @@ class DashboardData {
   const DashboardData({
     this.ordersToday = 0,
     this.revenueToday = 0,
+    this.profitToday = 0,
     this.ordersPendingPayment = 0,
     this.ordersPendingDispatch = 0,
     this.revenueThisWeek = 0,
@@ -28,6 +29,7 @@ class DashboardData {
 
   final int ordersToday;
   final int revenueToday;
+  final int profitToday;
   final int ordersPendingPayment;
   final int ordersPendingDispatch;
   final int revenueThisWeek;
@@ -63,6 +65,7 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
 
       var ordersToday = 0;
       var revenueToday = 0;
+      var profitToday = 0;
       var pendingPayment = 0;
       var pendingDispatch = 0;
       var revenueWeek = 0;
@@ -83,7 +86,10 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
 
         if (isToday) {
           ordersToday++;
-          if (countsAsRevenue) revenueToday += o.total;
+          if (countsAsRevenue) {
+            revenueToday += o.total;
+            profitToday += o.netProfit;
+          }
         }
 
         if (countsAsRevenue) revenueWeek += o.total;
@@ -125,6 +131,7 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardData>> {
       state = AsyncValue.data(DashboardData(
         ordersToday: ordersToday,
         revenueToday: revenueToday,
+        profitToday: profitToday,
         ordersPendingPayment: pendingPayment,
         ordersPendingDispatch: pendingDispatch,
         revenueThisWeek: revenueWeek,
