@@ -37,6 +37,10 @@ class HomeView extends ConsumerStatefulWidget {
 class _HomeViewState extends ConsumerState<HomeView> {
   final _scrollController = ScrollController();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _searchController = TextEditingController();
+
+  bool _searchActive = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -62,6 +66,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
         oldWidget.categorySlug != widget.categorySlug ||
         oldWidget.subcategorySlug != widget.subcategorySlug ||
         oldWidget.exploreCategorySlug != widget.exploreCategorySlug) {
+      // Al cambiar de contexto, reseteamos el buscador
+      _searchActive = false;
+      _searchQuery = '';
+      _searchController.clear();
+
       ref.read(storeControllerProvider.notifier).applyMode(
             mode: widget.mode,
             categorySlug: widget.categorySlug,
@@ -74,6 +83,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -89,6 +99,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final width = MediaQuery.sizeOf(context).width;
     if (width >= 1024) return;
     _scaffoldKey.currentState?.openDrawer();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _searchActive = !_searchActive;
+      if (!_searchActive) {
+        _searchQuery = '';
+        _searchController.clear();
+      }
+    });
   }
 
   void _openCart() {
@@ -115,32 +135,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  void _openSearch() {
-    // Construimos la URL de búsqueda con el contexto actual
-    String url = '/buscar';
-    final params = <String>[];
-    
-    if (widget.mode == HomeMode.explore && widget.exploreCategorySlug != null) {
-      params.add('cat=${widget.exploreCategorySlug}');
-      if (widget.subcategorySlug != null) {
-        params.add('sub=${widget.subcategorySlug}');
-      }
-    } else if (widget.mode == HomeMode.specialized && widget.categorySlug != null) {
-      params.add('cat=${widget.categorySlug}');
-    } else if (widget.mode == HomeMode.subcategory && widget.categorySlug != null) {
-      params.add('cat=${widget.categorySlug}');
-      if (widget.subcategorySlug != null && widget.subcategorySlug != 'todos') {
-        params.add('sub=${widget.subcategorySlug}');
-      }
-    }
-    
-    if (params.isNotEmpty) {
-      url += '?${params.join('&')}';
-    }
-    
-    context.go(url);
-  }
-
   Future<void> _addToCart(Product product) async {
     await ref.read(cartControllerProvider.notifier).addProduct(product);
     if (!mounted) return;
@@ -155,12 +149,25 @@ class _HomeViewState extends ConsumerState<HomeView> {
     await ref.read(analyticsServiceProvider).logAddToCart(product, 1);
   }
 
+  /// Filtra los productos visibles según la query de búsqueda.
+  List<Product> _applySearch(List<Product> products) {
+    if (_searchQuery.trim().isEmpty) return products;
+    final q = _searchQuery.toLowerCase().trim();
+    return products.where((p) {
+      return p.title.toLowerCase().contains(q) ||
+          p.description.toLowerCase().contains(q) ||
+          p.tags.any((t) => t.toLowerCase().contains(q));
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= 1024;
     final cartCount = ref.watch(cartCountProvider);
     final state = ref.watch(storeControllerProvider);
+
+    final filtered = _applySearch(state.visibleProducts);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -209,11 +216,33 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onMenuTap: _openDrawer,
                         onLogoTap: _goToHome,
                         onCartTap: _openCart,
-                        onSearchTap: _openSearch,
+                        onSearchTap: _toggleSearch,
                         showSearch: isWide || state.showSearchAndFilters,
                       ),
                     ),
 
+                    // Campo de búsqueda inline
+                    if (_searchActive)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: TextField(
+                            controller: _searchController,
+                            autofocus: true,
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar productos...',
+                              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                onPressed: _toggleSearch,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Título
                     if (_titleFor(state).isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
@@ -225,6 +254,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
 
+                    // Chips solo en modo explore (desde la general)
                     if (state.mode == HomeMode.explore)
                       const SliverToBoxAdapter(child: SubcategoryChips()),
 
@@ -238,10 +268,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onTap: (_) {},
                         onAddToCart: (_) {},
                       )
-                    else if (!state.hasProducts && !state.isLoadingProducts)
+                    else if (filtered.isEmpty && !state.isLoadingProducts)
                       SliverFillRemaining(
                         hasScrollBody: false,
                         child: _EmptyState(
+                          isSearch: _searchQuery.trim().isNotEmpty,
                           onRetry: () => ref
                               .read(storeControllerProvider.notifier)
                               .applyMode(
@@ -254,7 +285,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       )
                     else
                       ProductGrid(
-                        products: state.visibleProducts,
+                        products: filtered,
                         isLoading: false,
                         sortOption: ref.watch(sortOptionProvider),
                         showSortButton: state.showSearchAndFilters,
@@ -330,8 +361,9 @@ class _HomeViewState extends ConsumerState<HomeView> {
 }
 
 class _EmptyState extends ConsumerWidget {
-  const _EmptyState({required this.onRetry});
+  const _EmptyState({required this.onRetry, this.isSearch = false});
   final VoidCallback onRetry;
+  final bool isSearch;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -345,23 +377,27 @@ class _EmptyState extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.inventory_2_outlined,
+              isSearch ? Icons.search_off_rounded : Icons.inventory_2_outlined,
               size: 56,
               color: errorMsg != null ? AppColors.danger : AppColors.textMuted,
             ),
             const SizedBox(height: 16),
             Text(
-              errorMsg ?? AppStrings.noProducts,
+              isSearch
+                  ? 'Sin resultados para tu búsqueda'
+                  : (errorMsg ?? AppStrings.noProducts),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
             ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Reintentar'),
-            ),
+            if (!isSearch) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onRetry,
+                child: const Text('Reintentar'),
+              ),
+            ],
           ],
         ),
       ),

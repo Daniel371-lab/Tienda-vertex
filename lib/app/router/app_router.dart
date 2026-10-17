@@ -27,7 +27,6 @@ import '../../features/client_store/views/legal/returns_view.dart';
 import '../../features/client_store/views/legal/shipping_terms_view.dart';
 import '../../features/client_store/views/not_found_view.dart';
 import '../../features/client_store/views/product_detail_view.dart';
-import '../../features/client_store/views/search_view.dart';
 import '../../services/ai/gemini_service.dart';
 
 const String kBaseHref = String.fromEnvironment('BASE_HREF', defaultValue: '/');
@@ -92,14 +91,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/producto/:id',
         builder: (context, state) => ProductDetailView(
           productId: state.pathParameters['id']!,
-        ),
-      ),
-      GoRoute(
-        path: '/buscar',
-        builder: (context, state) => SearchView(
-          initialQuery: state.uri.queryParameters['q'],
-          categorySlug: state.uri.queryParameters['cat'],
-          subcategorySlug: state.uri.queryParameters['sub'],
         ),
       ),
 
