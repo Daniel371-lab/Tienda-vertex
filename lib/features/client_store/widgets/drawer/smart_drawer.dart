@@ -22,8 +22,6 @@ class SmartDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(storeControllerProvider);
     final notifier = ref.read(storeControllerProvider.notifier);
-
-    // Slug actual obtenido desde la URL de GoRouter (fuente de verdad).
     final currentSlug = GoRouterState.of(context).pathParameters['slug'] ?? '';
 
     return Container(
@@ -80,6 +78,11 @@ class SmartDrawer extends ConsumerWidget {
                         context.go('/$currentSlug/todos');
                         onNavigate?.call();
                       },
+                      onGoHome: () {
+                        notifier.selectSubcategory(null);
+                        context.go('/$currentSlug');
+                        onNavigate?.call();
+                      },
                     )
                   : _CategoriesList(
                       categories: state.categories,
@@ -88,6 +91,11 @@ class SmartDrawer extends ConsumerWidget {
                       onSelect: (slug) {
                         notifier.selectSubcategory(null);
                         context.go('/?cat=$slug');
+                        onNavigate?.call();
+                      },
+                      onGoHome: () {
+                        notifier.selectSubcategory(null);
+                        context.go('/');
                         onNavigate?.call();
                       },
                     ),
@@ -110,22 +118,20 @@ class SmartDrawer extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// GENERAL / EXPLORE — Lista de categorías
-// ─────────────────────────────────────────────────────────────
-
 class _CategoriesList extends StatelessWidget {
   const _CategoriesList({
     required this.categories,
     required this.isLoading,
     required this.activeCategoryId,
     required this.onSelect,
+    required this.onGoHome,
   });
 
   final List<Category> categories;
   final bool isLoading;
   final String? activeCategoryId;
   final void Function(String slug) onSelect;
+  final VoidCallback onGoHome;
 
   @override
   Widget build(BuildContext context) {
@@ -136,23 +142,18 @@ class _CategoriesList extends StatelessWidget {
       );
     }
 
-    if (categories.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          'No hay categorías disponibles.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textMuted,
-              ),
-        ),
-      );
-    }
-
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        _DrawerTile(
+          label: 'Inicio',
+          icon: Icons.home_outlined,
+          selected: activeCategoryId == null,
+          onTap: onGoHome,
+        ),
+        const Divider(),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           child: Text(
             'CATEGORÍAS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -174,16 +175,13 @@ class _CategoriesList extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SPECIALIZED / SUBCATEGORY — Lista de subcategorías
-// ─────────────────────────────────────────────────────────────
-
 class _SubcategoriesList extends StatelessWidget {
   const _SubcategoriesList({
     required this.state,
     required this.currentSlug,
     required this.onSelectSubcategory,
     required this.onSelectAll,
+    required this.onGoHome,
     this.onNavigate,
   });
 
@@ -191,6 +189,7 @@ class _SubcategoriesList extends StatelessWidget {
   final String currentSlug;
   final void Function(Subcategory) onSelectSubcategory;
   final VoidCallback onSelectAll;
+  final VoidCallback onGoHome;
   final VoidCallback? onNavigate;
 
   @override
@@ -201,25 +200,19 @@ class _SubcategoriesList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-          child: Text(
-            (category?.name ?? currentSlug).toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.textMuted,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
+        _DrawerTile(
+          label: 'Inicio',
+          icon: Icons.home_outlined,
+          selected: selectedId == null && state.mode == HomeMode.specialized,
+          onTap: onGoHome,
         ),
-
         _DrawerTile(
           label: 'Todos',
           icon: Icons.grid_view_rounded,
-          selected: selectedId == null,
+          selected: selectedId == null && state.mode == HomeMode.subcategory,
           onTap: onSelectAll,
         ),
-
+        
         if (category != null)
           for (final sub in category.subcategories)
             _DrawerTile(
@@ -233,10 +226,6 @@ class _SubcategoriesList extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Tile genérico
-// ─────────────────────────────────────────────────────────────
 
 class _DrawerTile extends StatelessWidget {
   const _DrawerTile({
@@ -301,17 +290,11 @@ class _DrawerTile extends StatelessWidget {
 
 IconData _iconForCategory(String icon) {
   switch (icon) {
-    case 'perfume_icon':
-      return Icons.spa_outlined;
-    case 'watch_icon':
-      return Icons.watch_outlined;
-    case 'jewelry_icon':
-      return Icons.diamond_outlined;
-    case 'electronics_icon':
-      return Icons.devices_other_outlined;
-    case 'bag_icon':
-      return Icons.shopping_bag_outlined;
-    default:
-      return Icons.category_outlined;
+    case 'perfume_icon': return Icons.spa_outlined;
+    case 'watch_icon': return Icons.watch_outlined;
+    case 'jewelry_icon': return Icons.diamond_outlined;
+    case 'electronics_icon': return Icons.devices_other_outlined;
+    case 'bag_icon': return Icons.shopping_bag_outlined;
+    default: return Icons.category_outlined;
   }
 }

@@ -83,13 +83,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // ── Páginas legales ─────────────────────────────────────
       GoRoute(path: '/nosotros', builder: (_, __) => const AboutView()),
       GoRoute(path: '/terminos', builder: (_, __) => const ShippingTermsView()),
       GoRoute(path: '/devoluciones', builder: (_, __) => const ReturnsView()),
       GoRoute(path: '/faq', builder: (_, __) => const FaqView()),
 
-      // ── Rutas con parámetros ────────────────────────────────
       GoRoute(
         path: '/producto/:id',
         builder: (context, state) => ProductDetailView(
@@ -103,17 +101,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // ── Admin ───────────────────────────────────────────────
       if (!kIsWeb) ...[
         GoRoute(path: '/login', builder: (_, __) => const LoginView()),
         ShellRoute(
           builder: (context, state, child) =>
               AdminShellView(child: child),
           routes: [
-            GoRoute(
-              path: '/admin',
-              builder: (_, __) => const DashboardView(),
-            ),
+            GoRoute(path: '/admin', builder: (_, __) => const DashboardView()),
             GoRoute(
               path: '/admin/productos',
               builder: (_, __) => const ProductManagerView(),
@@ -138,10 +132,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               path: '/admin/categorias',
               builder: (_, __) => const CategoryManagerView(),
               routes: [
-                GoRoute(
-                  path: 'nueva',
-                  builder: (_, __) => const CategoryFormView(),
-                ),
+                GoRoute(path: 'nueva', builder: (_, __) => const CategoryFormView()),
                 GoRoute(
                   path: ':id',
                   builder: (context, state) => CategoryFormView(
@@ -170,35 +161,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ],
             ),
-            GoRoute(
-              path: '/admin/cupones',
-              builder: (_, __) => const CouponManagerView(),
-            ),
-            GoRoute(
-              path: '/admin/blacklist',
-              builder: (_, __) => const BlacklistView(),
-            ),
-            GoRoute(
-              path: '/admin/ajustes',
-              builder: (_, __) => const SettingsView(),
-            ),
+            GoRoute(path: '/admin/cupones', builder: (_, __) => const CouponManagerView()),
+            GoRoute(path: '/admin/blacklist', builder: (_, __) => const BlacklistView()),
+            GoRoute(path: '/admin/ajustes', builder: (_, __) => const SettingsView()),
           ],
         ),
       ],
 
-      // ── Tienda pública ──────────────────────────────────────
-      // Home general o explore (`/?cat=perfumes`)
+      // Home general o explore
       GoRoute(
         path: '/',
         builder: (context, state) {
           final explore = state.uri.queryParameters['cat'];
+          final sub = state.uri.queryParameters['sub'];
           return HomeView(
             mode: explore != null ? HomeMode.explore : HomeMode.general,
             exploreCategorySlug: explore,
+            subcategorySlug: sub, // Usado en modo explore
           );
         },
       ),
-      // Tienda especializada (`/perfumes`)
+      // Tienda especializada
       GoRoute(
         path: '/:slug',
         builder: (context, state) => HomeView(
@@ -206,7 +189,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           categorySlug: state.pathParameters['slug'],
         ),
       ),
-      // Subcategoría (`/perfumes/arabes`)
+      // Subcategoría especializada o "todos"
       GoRoute(
         path: '/:slug/:subSlug',
         builder: (context, state) => HomeView(
@@ -216,7 +199,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // ── Fallback ────────────────────────────────────────────
       GoRoute(
         path: '/:rest(.*)',
         builder: (_, __) => const NotFoundView(),

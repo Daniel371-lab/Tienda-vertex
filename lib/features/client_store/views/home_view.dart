@@ -14,6 +14,7 @@ import '../widgets/drawer/smart_drawer.dart';
 import '../widgets/footer/store_footer.dart';
 import '../widgets/grid/product_grid.dart';
 import '../widgets/header/glass_header.dart';
+import '../widgets/subcategories/subcategory_chips.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({
@@ -189,35 +190,21 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       ),
                     ),
 
-                    // Título (solo si aplica)
                     if (_titleFor(state).isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _titleFor(state),
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium,
-                              ),
-                              if (_subtitleFor(state).isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  _subtitleFor(state),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: AppColors.textMuted),
-                                ),
-                              ],
-                            ],
+                          child: Text(
+                            _titleFor(state),
+                            style: Theme.of(context).textTheme.headlineMedium,
                           ),
                         ),
                       ),
 
-                    // Grid o estado vacío
+                    // Chips solo en modo "explore" (desde la general)
+                    if (state.mode == HomeMode.explore)
+                      const SliverToBoxAdapter(child: SubcategoryChips()),
+
                     if (state.isLoadingProducts && state.products.isEmpty)
                       ProductGrid(
                         products: const [],
@@ -263,9 +250,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                             child: SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           ),
                         ),
@@ -282,22 +267,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  /// Título principal.
   String _titleFor(StoreState state) {
-    // General: sin título
     if (state.mode == HomeMode.general) return '';
+    if (state.mode == HomeMode.specialized) return ''; // Sin título en dashboard especializado
 
-    // Explore: nombre de la categoría
     if (state.mode == HomeMode.explore) {
       return state.activeCategory?.name ?? '';
     }
 
-    // Specialized: nombre de la categoría
-    if (state.mode == HomeMode.specialized) {
-      return state.activeCategory?.name ?? '';
-    }
-
-    // Subcategory: "Categoría · Subcategoría"
     if (state.mode == HomeMode.subcategory) {
       final catName = state.activeCategory?.name ?? '';
       if (state.activeSubcategory != null) {
@@ -309,21 +286,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
     return '';
   }
 
-  /// Subtítulo según el modo.
-  String _subtitleFor(StoreState state) {
-    if (state.mode == HomeMode.explore) return 'Todos los productos';
-    if (state.mode == HomeMode.specialized) return 'Nuestra selección';
-    return '';
-  }
-
   void _goToHome() {
     final notifier = ref.read(storeControllerProvider.notifier);
     notifier.selectSubcategory(null);
 
-    // En specialized/subcategory el logo se queda en el nicho.
-    // En general/explore va al home.
-    if (widget.mode == HomeMode.specialized ||
-        widget.mode == HomeMode.subcategory) {
+    if (widget.mode == HomeMode.specialized || widget.mode == HomeMode.subcategory) {
       context.go('/${widget.categorySlug}');
     } else {
       context.go('/');
@@ -357,9 +324,7 @@ class _EmptyState extends ConsumerWidget {
             Icon(
               Icons.inventory_2_outlined,
               size: 56,
-              color: errorMsg != null
-                  ? AppColors.danger
-                  : AppColors.textMuted,
+              color: errorMsg != null ? AppColors.danger : AppColors.textMuted,
             ),
             const SizedBox(height: 16),
             Text(

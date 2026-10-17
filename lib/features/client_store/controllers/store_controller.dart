@@ -43,8 +43,9 @@ class StoreState {
   final bool isLoadingMore;
   final String? error;
 
-  /// Buscador y filtros solo en subcategoría real (no en "todos")
-  bool get showSearchAndFilters => mode == HomeMode.subcategory;
+  /// Buscador y filtros visibles SOLO en categorías/subcategorías
+  bool get showSearchAndFilters => 
+      mode == HomeMode.explore || mode == HomeMode.subcategory;
 
   /// Drawer muestra subcategorías en tiendas especializadas
   bool get showSubcategoriesInDrawer =>
@@ -148,7 +149,7 @@ class StoreController extends StateNotifier<StoreState> {
         await _loadGeneral();
         break;
       case HomeMode.explore:
-        await _loadExplore(exploreCategorySlug);
+        await _loadExplore(exploreCategorySlug, subcategorySlug);
         break;
       case HomeMode.specialized:
         await _loadSpecialized(categorySlug);
@@ -176,7 +177,7 @@ class StoreController extends StateNotifier<StoreState> {
     }
   }
 
-  Future<void> _loadExplore(String? categorySlug) async {
+  Future<void> _loadExplore(String? categorySlug, String? subcategorySlug) async {
     if (categorySlug == null) {
       await _loadGeneral();
       return;
@@ -186,11 +187,22 @@ class StoreController extends StateNotifier<StoreState> {
       await _loadGeneral();
       return;
     }
+    
+    Subcategory? sub;
+    if (subcategorySlug != null) {
+      try {
+        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
+      } catch (_) {
+        sub = null;
+      }
+    }
+
     state = state.copyWith(
       activeCategory: category,
-      clearActiveSubcategory: true,
-      clearSelectedSubcategory: true,
+      activeSubcategory: sub,
+      selectedSubcategoryId: sub?.id,
     );
+
     try {
       final page = await _fs.fetchAllByCategory(categoryId: category.id);
       state = state.copyWith(
@@ -250,7 +262,6 @@ class StoreController extends StateNotifier<StoreState> {
       return;
     }
 
-    // Caso especial: "todos" → todos los productos de la categoría
     if (subcategorySlug == 'todos') {
       state = state.copyWith(
         activeCategory: category,
@@ -274,12 +285,10 @@ class StoreController extends StateNotifier<StoreState> {
       return;
     }
 
-    // Subcategoría real
     Subcategory? sub;
     if (subcategorySlug != null) {
       try {
-        sub = category.subcategories
-            .firstWhere((s) => s.slug == subcategorySlug);
+        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
       } catch (_) {
         sub = null;
       }
@@ -332,8 +341,7 @@ class StoreController extends StateNotifier<StoreState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       final ProductsPage page;
-      if (state.mode == HomeMode.subcategory &&
-          state.activeSubcategory != null) {
+      if (state.mode == HomeMode.subcategory && state.activeSubcategory != null) {
         page = await _fs.fetchAllBySubcategory(
           categoryId: state.activeCategory!.id,
           subcategoryId: state.activeSubcategory!.id,

@@ -6,7 +6,6 @@ import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../models/product_model.dart';
 import 'product_card.dart';
 
-/// Opciones de ordenamiento.
 enum SortOption {
   recent('Más recientes'),
   priceAsc('Precio: menor a mayor'),
@@ -16,7 +15,6 @@ enum SortOption {
   final String label;
 }
 
-/// Provider global del orden actual.
 final sortOptionProvider = StateProvider<SortOption>((ref) => SortOption.recent);
 
 class ProductGrid extends ConsumerWidget {
@@ -162,8 +160,7 @@ class _SortButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sort_rounded,
-                size: 16, color: AppColors.textPrimary),
+            const Icon(Icons.sort_rounded, size: 16, color: AppColors.textPrimary),
             const SizedBox(width: 6),
             Text(
               'Ordenar',
@@ -202,10 +199,7 @@ class _SortButton extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text(
-                    'Ordenar por',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  Text('Ordenar por', style: Theme.of(context).textTheme.titleLarge),
                 ],
               ),
             ),

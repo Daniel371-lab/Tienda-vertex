@@ -4,11 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/constants/app_strings.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../models/category_model.dart';
 import '../../controllers/store_controller.dart';
 
-/// Carrusel horizontal de chips de subcategorías.
-/// El filtrado es reactivo en memoria: sin navegación ni recarga.
 class SubcategoryChips extends ConsumerWidget {
   const SubcategoryChips({super.key});
 
@@ -18,7 +15,6 @@ class SubcategoryChips extends ConsumerWidget {
     final notifier = ref.read(storeControllerProvider.notifier);
     final category = state.activeCategory;
 
-    // No mostramos chips en la vista global ni si no hay subcategorías.
     if (category == null || category.subcategories.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -34,14 +30,13 @@ class SubcategoryChips extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         itemCount: subs.length + 1,
         itemBuilder: (context, index) {
-          // Chip "Todos" en la posición 0
           if (index == 0) {
             return _Chip(
               label: AppStrings.filterAll,
               selected: selectedId == null,
               onTap: () {
                 notifier.selectSubcategory(null);
-                context.go('/${category.slug}');
+                context.go('/?cat=${category.slug}');
               },
             );
           }
@@ -51,7 +46,7 @@ class SubcategoryChips extends ConsumerWidget {
             selected: selectedId == sub.id,
             onTap: () {
               notifier.selectSubcategory(sub.id);
-              context.go('/${category.slug}/${sub.slug}');
+              context.go('/?cat=${category.slug}&sub=${sub.slug}');
             },
           );
         },
