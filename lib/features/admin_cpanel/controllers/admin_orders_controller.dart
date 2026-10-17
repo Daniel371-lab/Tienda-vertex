@@ -109,7 +109,7 @@ class AdminOrdersController extends StateNotifier<AdminOrdersState> {
     int? realShippingCost,
   }) async {
     try {
-      final db = _ref.read(firebaseInstanceProvider);
+      final db = _ref.read(firestoreInstanceProvider);
       final update = <String, dynamic>{
         'status': newStatus.value,
         'updatedAt': FieldValue.serverTimestamp(),
