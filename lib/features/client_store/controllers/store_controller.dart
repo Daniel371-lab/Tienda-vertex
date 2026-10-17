@@ -43,11 +43,9 @@ class StoreState {
   final bool isLoadingMore;
   final String? error;
 
-  /// Buscador y filtros visibles SOLO en categorías/subcategorías
   bool get showSearchAndFilters => 
       mode == HomeMode.explore || mode == HomeMode.subcategory;
 
-  /// Drawer muestra subcategorías en tiendas especializadas
   bool get showSubcategoriesInDrawer =>
       mode == HomeMode.specialized || mode == HomeMode.subcategory;
 
@@ -157,6 +155,79 @@ class StoreController extends StateNotifier<StoreState> {
       case HomeMode.subcategory:
         await _loadSubcategory(categorySlug, subcategorySlug);
         break;
+    }
+  }
+
+  /// Carga productos para la vista de búsqueda según el contexto.
+  Future<void> loadSearchContext({
+    String? categorySlug,
+    String? subcategorySlug,
+  }) async {
+    state = state.copyWith(
+      isLoadingProducts: true,
+      clearError: true,
+      products: const [],
+    );
+
+    try {
+      if (categorySlug == null) {
+        // Búsqueda general: todos los productos
+        final products = await _fs.fetchAllActiveProducts();
+        state = state.copyWith(
+          products: products,
+          isLoadingProducts: false,
+        );
+        return;
+      }
+
+      // Búsqueda en categoría
+      final category = await _resolveCategory(categorySlug);
+      if (category == null) {
+        final products = await _fs.fetchAllActiveProducts();
+        state = state.copyWith(products: products, isLoadingProducts: false);
+        return;
+      }
+
+      if (subcategorySlug == null) {
+        // Toda la categoría
+        final page = await _fs.fetchAllByCategory(categoryId: category.id);
+        state = state.copyWith(
+          products: page.products,
+          isLoadingProducts: false,
+        );
+        return;
+      }
+
+      // Subcategoría específica
+      Subcategory? sub;
+      try {
+        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
+      } catch (_) {
+        sub = null;
+      }
+
+      if (sub == null) {
+        final page = await _fs.fetchAllByCategory(categoryId: category.id);
+        state = state.copyWith(
+          products: page.products,
+          isLoadingProducts: false,
+        );
+        return;
+      }
+
+      final page = await _fs.fetchAllBySubcategory(
+        categoryId: category.id,
+        subcategoryId: sub.id,
+      );
+      state = state.copyWith(
+        products: page.products,
+        isLoadingProducts: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingProducts: false,
+        error: 'Error al buscar productos.',
+      );
     }
   }
 

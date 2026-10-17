@@ -115,7 +115,31 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  void _openSearch() => context.go('/buscar');
+  void _openSearch() {
+    // Construimos la URL de búsqueda con el contexto actual
+    String url = '/buscar';
+    final params = <String>[];
+    
+    if (widget.mode == HomeMode.explore && widget.exploreCategorySlug != null) {
+      params.add('cat=${widget.exploreCategorySlug}');
+      if (widget.subcategorySlug != null) {
+        params.add('sub=${widget.subcategorySlug}');
+      }
+    } else if (widget.mode == HomeMode.specialized && widget.categorySlug != null) {
+      params.add('cat=${widget.categorySlug}');
+    } else if (widget.mode == HomeMode.subcategory && widget.categorySlug != null) {
+      params.add('cat=${widget.categorySlug}');
+      if (widget.subcategorySlug != null && widget.subcategorySlug != 'todos') {
+        params.add('sub=${widget.subcategorySlug}');
+      }
+    }
+    
+    if (params.isNotEmpty) {
+      url += '?${params.join('&')}';
+    }
+    
+    context.go(url);
+  }
 
   Future<void> _addToCart(Product product) async {
     await ref.read(cartControllerProvider.notifier).addProduct(product);
@@ -201,7 +225,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
 
-                    // Chips solo en modo "explore" (desde la general)
                     if (state.mode == HomeMode.explore)
                       const SliverToBoxAdapter(child: SubcategoryChips()),
 
@@ -269,7 +292,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   String _titleFor(StoreState state) {
     if (state.mode == HomeMode.general) return '';
-    if (state.mode == HomeMode.specialized) return ''; // Sin título en dashboard especializado
+    if (state.mode == HomeMode.specialized) return '';
 
     if (state.mode == HomeMode.explore) {
       return state.activeCategory?.name ?? '';

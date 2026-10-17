@@ -45,6 +45,21 @@ class FirestoreService {
 
   // ── PRODUCTOS ─────────────────────────────────────────────────
 
+  /// TODOS los productos activos (para búsqueda general).
+  Future<List<Product>> fetchAllActiveProducts() async {
+    final snap = await _db
+        .collection(ApiConstants.colProducts)
+        .where('isActive', isEqualTo: true)
+        .get();
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    products.sort((a, b) {
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
+    });
+    return products;
+  }
+
   /// 10 destacados del home general (`/`).
   Future<List<Product>> fetchFeaturedGeneral({int limit = 10}) async {
     final snap = await _db
@@ -156,7 +171,6 @@ class FirestoreService {
     return results;
   }
 
-  // Caché interna para slug → id. Se llena desde el controller.
   static final Map<String, String> _slugOfCategoryCache = {};
 
   static void registerCategorySlug(String categoryId, String slug) {

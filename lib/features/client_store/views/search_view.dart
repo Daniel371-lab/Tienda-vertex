@@ -10,8 +10,16 @@ import '../controllers/store_controller.dart';
 import '../widgets/grid/product_grid.dart';
 
 class SearchView extends ConsumerStatefulWidget {
-  const SearchView({super.key, this.initialQuery});
+  const SearchView({
+    super.key,
+    this.initialQuery,
+    this.categorySlug,
+    this.subcategorySlug,
+  });
+
   final String? initialQuery;
+  final String? categorySlug;
+  final String? subcategorySlug;
 
   @override
   ConsumerState<SearchView> createState() => _SearchViewState();
@@ -29,10 +37,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(storeControllerProvider.notifier).loadCategories();
-      // Cargamos todos los productos como modo "explore" sin categoría
-      await ref.read(storeControllerProvider.notifier).applyMode(
-            mode: HomeMode.explore,
-            exploreCategorySlug: null,
+      // Cargamos el contexto de búsqueda según la URL
+      await ref.read(storeControllerProvider.notifier).loadSearchContext(
+            categorySlug: widget.categorySlug,
+            subcategorySlug: widget.subcategorySlug,
           );
     });
   }
@@ -65,24 +73,59 @@ class _SearchViewState extends ConsumerState<SearchView> {
     );
   }
 
+  void _goBack() {
+    // Si hay historial, volvemos atrás. Si no, vamos al dashboard.
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      if (widget.categorySlug != null) {
+        if (widget.subcategorySlug != null) {
+          context.go('/${widget.categorySlug}/${widget.subcategorySlug}');
+        } else {
+          context.go('/${widget.categorySlug}');
+        }
+      } else {
+        context.go('/');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(storeControllerProvider);
     final sortOption = ref.watch(sortOptionProvider);
     final results = _filter(state.products);
 
+    // Texto del título según el contexto
+    String contextText = 'Buscar';
+    if (widget.categorySlug != null) {
+      final cat = state.categories
+          .where((c) => c.slug == widget.categorySlug)
+          .firstOrNull;
+      if (cat != null) {
+        contextText = 'Buscar en ${cat.name}';
+        if (widget.subcategorySlug != null) {
+          final sub = cat.subcategories
+              .where((s) => s.slug == widget.subcategorySlug)
+              .firstOrNull;
+          if (sub != null) {
+            contextText = 'Buscar en ${cat.name} · ${sub.name}';
+          }
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Barra de búsqueda ─────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => context.go('/'),
+                    onPressed: _goBack,
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 8),
@@ -90,12 +133,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
-                      onChanged: (v) {
-                        setState(() => _query = v);
-                      },
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar productos...',
-                        prefixIcon: Icon(Icons.search_rounded, size: 20),
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        hintText: contextText,
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       ),
                     ),
                   ),
@@ -103,45 +144,49 @@ class _SearchViewState extends ConsumerState<SearchView> {
               ),
             ),
 
-            // ── Resultados ────────────────────────────────
             Expanded(
-              child: _query.trim().isEmpty
-                  ? const _EmptySearch()
-                  : results.isEmpty
-                      ? const _NoResults()
-                      : CustomScrollView(
-                          slivers: [
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    20, 8, 20, 0),
-                                child: Text(
-                                  '${results.length} resultados',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium
-                                      ?.copyWith(
-                                        color: AppColors.textMuted,
-                                      ),
+              child: state.isLoadingProducts
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary),
+                    )
+                  : _query.trim().isEmpty
+                      ? const _EmptySearch()
+                      : results.isEmpty
+                          ? const _NoResults()
+                          : CustomScrollView(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 8, 20, 0),
+                                    child: Text(
+                                      '${results.length} resultados',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: AppColors.textMuted,
+                                          ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                ProductGrid(
+                                  products: results,
+                                  isLoading: false,
+                                  sortOption: sortOption,
+                                  showSortButton: true,
+                                  onSortChanged: (option) {
+                                    ref
+                                        .read(sortOptionProvider.notifier)
+                                        .state = option;
+                                  },
+                                  onTap: (p) =>
+                                      context.go('/producto/${p.id}'),
+                                  onAddToCart: _addToCart,
+                                ),
+                              ],
                             ),
-                            ProductGrid(
-                              products: results,
-                              isLoading: false,
-                              sortOption: sortOption,
-                              showSortButton: true,
-                              onSortChanged: (option) {
-                                ref
-                                    .read(sortOptionProvider.notifier)
-                                    .state = option;
-                              },
-                              onTap: (p) =>
-                                  context.go('/producto/${p.id}'),
-                              onAddToCart: _addToCart,
-                            ),
-                          ],
-                        ),
             ),
           ],
         ),

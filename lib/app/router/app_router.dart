@@ -98,6 +98,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/buscar',
         builder: (context, state) => SearchView(
           initialQuery: state.uri.queryParameters['q'],
+          categorySlug: state.uri.queryParameters['cat'],
+          subcategorySlug: state.uri.queryParameters['sub'],
         ),
       ),
 
@@ -168,7 +170,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ],
 
-      // Home general o explore
       GoRoute(
         path: '/',
         builder: (context, state) {
@@ -177,11 +178,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return HomeView(
             mode: explore != null ? HomeMode.explore : HomeMode.general,
             exploreCategorySlug: explore,
-            subcategorySlug: sub, // Usado en modo explore
+            subcategorySlug: sub,
           );
         },
       ),
-      // Tienda especializada
       GoRoute(
         path: '/:slug',
         builder: (context, state) => HomeView(
@@ -189,7 +189,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           categorySlug: state.pathParameters['slug'],
         ),
       ),
-      // Subcategoría especializada o "todos"
       GoRoute(
         path: '/:slug/:subSlug',
         builder: (context, state) => HomeView(
