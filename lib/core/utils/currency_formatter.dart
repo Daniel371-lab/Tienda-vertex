@@ -2,13 +2,13 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Formateo de moneda para Guaraníes paraguayos.
-/// Ejemplo: 180000 → "₲ 180.000"
+/// Ejemplo: 180000 → "Gs. 180.000"
 abstract final class CurrencyFormatter {
   static final NumberFormat _pyg = NumberFormat.decimalPattern('es_PY');
 
-  /// Formatea un entero de guaraníes al estilo oficial: ₲ 180.000
-  /// El guaraní no usa decimales.
-  static String format(int amount, {String symbol = '₲'}) {
+  /// Formatea un entero de guaraníes con el símbolo oficial.
+  /// Si querés que diga "GS" en mayúscula, cambiá el valor por defecto aquí.
+  static String format(int amount, {String symbol = 'Gs.'}) {
     final formatted = _pyg.format(amount);
     return '$symbol $formatted';
   }
