@@ -6,8 +6,12 @@ class CheckoutState {
     this.phone = '',
     this.department,
     this.city,
-    this.address = '',
+    this.neighborhood = '',
+    this.street1 = '',
+    this.street2 = '',
+    this.locationType = 'Casa',
     this.reference = '',
+    this.googleMapsLink = '',
     this.couponCode = '',
     this.appliedCouponCode,
     this.discountAmount = 0,
@@ -22,8 +26,12 @@ class CheckoutState {
   final String phone;
   final String? department;
   final String? city;
-  final String address;
+  final String neighborhood;
+  final String street1;
+  final String street2;
+  final String locationType; // "Casa" o "Trabajo"
   final String reference;
+  final String googleMapsLink;
   final String couponCode;
   final String? appliedCouponCode;
   final int discountAmount;
@@ -40,8 +48,12 @@ class CheckoutState {
     String? phone,
     String? department,
     String? city,
-    String? address,
+    String? neighborhood,
+    String? street1,
+    String? street2,
+    String? locationType,
     String? reference,
+    String? googleMapsLink,
     String? couponCode,
     String? appliedCouponCode,
     int? discountAmount,
@@ -59,8 +71,12 @@ class CheckoutState {
       phone: phone ?? this.phone,
       department: department ?? this.department,
       city: city ?? this.city,
-      address: address ?? this.address,
+      neighborhood: neighborhood ?? this.neighborhood,
+      street1: street1 ?? this.street1,
+      street2: street2 ?? this.street2,
+      locationType: locationType ?? this.locationType,
       reference: reference ?? this.reference,
+      googleMapsLink: googleMapsLink ?? this.googleMapsLink,
       couponCode: couponCode ?? this.couponCode,
       appliedCouponCode:
           clearCoupon ? null : (appliedCouponCode ?? this.appliedCouponCode),
@@ -79,66 +95,33 @@ class CheckoutState {
 class CheckoutController extends StateNotifier<CheckoutState> {
   CheckoutController() : super(const CheckoutState());
 
-  void setFullName(String v) =>
-      state = state.copyWith(fullName: v, clearError: true);
+  void setFullName(String v) => state = state.copyWith(fullName: v, clearError: true);
+  void setPhone(String v) => state = state.copyWith(phone: v, clearError: true);
+  void setDepartment(String? v) => state = state.copyWith(department: v, city: null, clearError: true);
+  void setCity(String? v) => state = state.copyWith(city: v, clearError: true);
+  
+  void setNeighborhood(String v) => state = state.copyWith(neighborhood: v, clearError: true);
+  void setStreet1(String v) => state = state.copyWith(street1: v, clearError: true);
+  void setStreet2(String v) => state = state.copyWith(street2: v, clearError: true);
+  void setLocationType(String v) => state = state.copyWith(locationType: v, clearError: true);
+  void setReference(String v) => state = state.copyWith(reference: v, clearError: true);
+  void setGoogleMapsLink(String v) => state = state.copyWith(googleMapsLink: v, clearError: true);
 
-  void setPhone(String v) =>
-      state = state.copyWith(phone: v, clearError: true);
-
-  void setDepartment(String? v) {
-    state = state.copyWith(department: v, city: null, clearError: true);
-  }
-
-  void setCity(String? v) =>
-      state = state.copyWith(city: v, clearError: true);
-
-  void setAddress(String v) =>
-      state = state.copyWith(address: v, clearError: true);
-
-  void setReference(String v) =>
-      state = state.copyWith(reference: v, clearError: true);
-
-  void setHolderName(String v) =>
-      state = state.copyWith(holderName: v, clearError: true);
-
-  void setSourceBank(String? v) =>
-      state = state.copyWith(sourceBank: v, clearError: true);
-
-  void setCouponCode(String v) => state = state.copyWith(
-        couponCode: v,
-        clearCouponError: true,
-      );
-
+  void setHolderName(String v) => state = state.copyWith(holderName: v, clearError: true);
+  void setSourceBank(String? v) => state = state.copyWith(sourceBank: v, clearError: true);
+  void setCouponCode(String v) => state = state.copyWith(couponCode: v, clearCouponError: true);
   void setSubmitting(bool v) => state = state.copyWith(isSubmitting: v);
+  void setError(String msg) => state = state.copyWith(error: msg, isSubmitting: false);
 
-  void setError(String msg) =>
-      state = state.copyWith(error: msg, isSubmitting: false);
-
-  void applyCoupon({
-    required String code,
-    required int discountAmount,
-  }) {
-    state = state.copyWith(
-      appliedCouponCode: code,
-      discountAmount: discountAmount,
-      clearCouponError: true,
-    );
+  void applyCoupon({required String code, required int discountAmount}) {
+    state = state.copyWith(appliedCouponCode: code, discountAmount: discountAmount, clearCouponError: true);
   }
 
   void rejectCoupon(String message) {
-    state = state.copyWith(
-      couponError: message,
-      appliedCouponCode: null,
-      discountAmount: 0,
-    );
+    state = state.copyWith(couponError: message, appliedCouponCode: null, discountAmount: 0);
   }
 
-  void removeCoupon() => state = state.copyWith(
-        clearCoupon: true,
-        couponCode: '',
-        clearCouponError: true,
-      );
-
+  void removeCoupon() => state = state.copyWith(clearCoupon: true, couponCode: '', clearCouponError: true);
   void reset() => state = const CheckoutState();
 }
 

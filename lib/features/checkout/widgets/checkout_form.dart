@@ -11,22 +11,10 @@ import '../../client_store/controllers/cart_controller.dart';
 import '../controllers/checkout_controller.dart';
 
 const List<String> kSourceBanks = [
-  'ueno bank',
-  'Banco Continental',
-  'Banco Itaú',
-  'Banco Atlas',
-  'Banco Familiar',
-  'Banco Visión',
-  'Banco Sudameris',
-  'Banco Regional',
-  'Banco GNB',
-  'Banco Basa',
-  'Banco FIC',
-  'Financiera Paraguayo Japonesa',
-  'Tigo Money',
-  'Personal Pay',
-  'Billetera Zimple',
-  'Otro',
+  'ueno bank', 'Banco Continental', 'Banco Itaú', 'Banco Atlas',
+  'Banco Familiar', 'Banco Visión', 'Banco Sudameris', 'Banco Regional',
+  'Banco GNB', 'Banco Basa', 'Banco FIC', 'Financiera Paraguayo Japonesa',
+  'Tigo Money', 'Personal Pay', 'Billetera Zimple', 'Otro',
 ];
 
 class CheckoutForm extends ConsumerStatefulWidget {
@@ -39,10 +27,14 @@ class CheckoutForm extends ConsumerStatefulWidget {
 class _CheckoutFormState extends ConsumerState<CheckoutForm> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _addressCtrl;
+  late final TextEditingController _neighborhoodCtrl;
+  late final TextEditingController _street1Ctrl;
+  late final TextEditingController _street2Ctrl;
   late final TextEditingController _referenceCtrl;
-  late final TextEditingController _couponCtrl;
+  late final TextEditingController _mapsCtrl;
   late final TextEditingController _holderCtrl;
+  late final TextEditingController _couponCtrl;
+  
   bool _isValidatingCoupon = false;
 
   @override
@@ -51,20 +43,26 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     final s = ref.read(checkoutControllerProvider);
     _nameCtrl = TextEditingController(text: s.fullName);
     _phoneCtrl = TextEditingController(text: s.phone);
-    _addressCtrl = TextEditingController(text: s.address);
+    _neighborhoodCtrl = TextEditingController(text: s.neighborhood);
+    _street1Ctrl = TextEditingController(text: s.street1);
+    _street2Ctrl = TextEditingController(text: s.street2);
     _referenceCtrl = TextEditingController(text: s.reference);
-    _couponCtrl = TextEditingController(text: s.couponCode);
+    _mapsCtrl = TextEditingController(text: s.googleMapsLink);
     _holderCtrl = TextEditingController(text: s.holderName);
+    _couponCtrl = TextEditingController(text: s.couponCode);
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
+    _neighborhoodCtrl.dispose();
+    _street1Ctrl.dispose();
+    _street2Ctrl.dispose();
     _referenceCtrl.dispose();
-    _couponCtrl.dispose();
+    _mapsCtrl.dispose();
     _holderCtrl.dispose();
+    _couponCtrl.dispose();
     super.dispose();
   }
 
@@ -111,7 +109,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         _Field(
           label: AppStrings.fieldDepartment,
           child: DropdownButtonFormField<String>(
-            key: const ValueKey('dept_dropdown'),
             value: state.department,
             isExpanded: true,
             items: departments
@@ -126,54 +123,123 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         ),
         _Field(
           label: AppStrings.fieldCity,
-          child: DropdownButtonFormField<String>(
-            // Fix: key única según departamento para forzar reconstrucción.
-            key: ValueKey('city_${state.department}'),
-            value: state.city,
-            isExpanded: true,
-            items: cities.map((c) {
-              final hasPickup = ParaguayLocations.hasPickup(c);
-              return DropdownMenuItem<String>(
-                value: c,
-                child: Row(
-                  children: [
-                    Expanded(child: Text(c)),
-                    if (hasPickup) ...[
-                      const SizedBox(width: 8),
-                      const Text(
-                        'AEX',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<String>(
+                key: ValueKey('city_${state.department}'),
+                value: state.city,
+                isExpanded: true,
+                items: cities.map((c) {
+                  final hasPickup = ParaguayLocations.hasPickup(c);
+                  return DropdownMenuItem<String>(
+                    value: c,
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(c)),
+                        if (hasPickup) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.location_on_rounded, size: 18, color: AppColors.primary),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: state.department == null ? null : ctrl.setCity,
+                decoration: InputDecoration(
+                  hintText: state.department == null
+                      ? 'Elegí un departamento primero'
+                      : 'Seleccionar ciudad',
+                  prefixIcon: const Icon(Icons.location_city_outlined, size: 20),
                 ),
-              );
-            }).toList(),
-            onChanged: state.department == null ? null : ctrl.setCity,
-            decoration: InputDecoration(
-              hintText: state.department == null
-                  ? 'Elegí un departamento primero'
-                  : 'Seleccionar ciudad',
-              prefixIcon:
-                  const Icon(Icons.location_city_outlined, size: 20),
+              ),
+              if (state.department != null && cities.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _InfoMessage(),
+              ],
+            ],
+          ),
+        ),
+
+        const Divider(height: 32),
+        Text('Dirección de entrega', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+
+        _Field(
+          label: 'Barrio',
+          child: TextField(
+            controller: _neighborhoodCtrl,
+            textCapitalization: TextCapitalization.words,
+            onChanged: ctrl.setNeighborhood,
+            decoration: const InputDecoration(
+              hintText: 'Ej: Villa Morra',
+              prefixIcon: Icon(Icons.location_city_rounded, size: 20),
             ),
           ),
         ),
-        _Field(
-          label: 'Dirección',
-          child: TextField(
-            controller: _addressCtrl,
-            maxLines: 2,
-            onChanged: ctrl.setAddress,
-            decoration: const InputDecoration(
-              hintText: 'Calle, número...',
-              prefixIcon: Icon(Icons.home_outlined, size: 20),
+        Row(
+          children: [
+            Expanded(
+              child: _Field(
+                label: 'Calle Principal',
+                child: TextField(
+                  controller: _street1Ctrl,
+                  textCapitalization: TextCapitalization.words,
+                  onChanged: ctrl.setStreet1,
+                  decoration: const InputDecoration(
+                    hintText: 'Ej: Av. Corrales',
+                    prefixIcon: Icon(Icons.signpost_outlined, size: 20),
+                  ),
+                ),
+              ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _Field(
+                label: 'Calle Secundaria',
+                child: TextField(
+                  controller: _street2Ctrl,
+                  textCapitalization: TextCapitalization.words,
+                  onChanged: ctrl.setStreet2,
+                  decoration: const InputDecoration(
+                    hintText: 'Ej: casi Iturbe',
+                    prefixIcon: Icon(Icons.signpost_outlined, size: 20),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        _Field(
+          label: '¿Es Casa o Trabajo?',
+          child: Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Casa')),
+                  selected: state.locationType == 'Casa',
+                  onSelected: (_) => ctrl.setLocationType('Casa'),
+                  selectedColor: AppColors.primarySoft,
+                  labelStyle: TextStyle(
+                    color: state.locationType == 'Casa' ? AppColors.primary : AppColors.textPrimary,
+                    fontWeight: state.locationType == 'Casa' ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Trabajo')),
+                  selected: state.locationType == 'Trabajo',
+                  onSelected: (_) => ctrl.setLocationType('Trabajo'),
+                  selectedColor: AppColors.primarySoft,
+                  labelStyle: TextStyle(
+                    color: state.locationType == 'Trabajo' ? AppColors.primary : AppColors.textPrimary,
+                    fontWeight: state.locationType == 'Trabajo' ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         _Field(
@@ -183,8 +249,19 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             maxLines: 2,
             onChanged: ctrl.setReference,
             decoration: const InputDecoration(
-              hintText: 'Barrio, edificio, color de casa, referencia...',
+              hintText: 'Nro de casa, color, a 1 cuadra de farmacia...',
               prefixIcon: Icon(Icons.info_outline_rounded, size: 20),
+            ),
+          ),
+        ),
+        _Field(
+          label: 'Link de Google Maps (opcional)',
+          child: TextField(
+            controller: _mapsCtrl,
+            onChanged: ctrl.setGoogleMapsLink,
+            decoration: const InputDecoration(
+              hintText: 'https://maps.app.goo.gl/...',
+              prefixIcon: Icon(Icons.map_rounded, size: 20),
             ),
           ),
         ),
@@ -195,8 +272,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              const Icon(Icons.account_balance_outlined,
-                  size: 18, color: AppColors.primary),
+              const Icon(Icons.account_balance_outlined, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 'Datos para identificar tu pago',
@@ -233,7 +309,6 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
         _Field(
           label: 'Banco desde el que vas a transferir',
           child: DropdownButtonFormField<String>(
-            key: const ValueKey('bank_dropdown'),
             value: state.sourceBank,
             isExpanded: true,
             items: kSourceBanks
@@ -280,14 +355,9 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : Text(
-                          state.hasCoupon ? 'Quitar' : AppStrings.applyCoupon,
-                        ),
+                      : Text(state.hasCoupon ? 'Quitar' : AppStrings.applyCoupon),
                 ),
               ),
             ],
@@ -298,10 +368,7 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             padding: const EdgeInsets.only(top: 4, left: 4),
             child: Text(
               state.couponError!,
-              style: const TextStyle(
-                color: AppColors.danger,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: AppColors.danger, fontSize: 12),
             ),
           ),
         if (state.hasCoupon)
@@ -309,71 +376,15 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
             padding: const EdgeInsets.only(top: 4, left: 4),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_rounded,
-                    size: 14, color: AppColors.success),
+                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.success),
                 const SizedBox(width: 6),
                 Text(
                   '${AppStrings.couponApplied}: ${state.appliedCouponCode}',
-                  style: const TextStyle(
-                    color: AppColors.success,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-
-        // ── MENSAJE INFORMATIVO ───────────────────────────────
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.info_outline_rounded,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textPrimary,
-                          height: 1.5,
-                        ),
-                    children: const [
-                      TextSpan(text: 'Las ciudades marcadas con '),
-                      TextSpan(
-                        text: 'AEX',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      TextSpan(
-                        text: ' en la lista tienen Punto de Entrega. '
-                            'Si tu ciudad no está listada, escribinos por '
-                            'WhatsApp y coordinamos el retiro en el punto '
-                            'AEX más cercano a tu ubicación.',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -405,6 +416,50 @@ class _CheckoutFormState extends ConsumerState<CheckoutForm> {
     } finally {
       if (mounted) setState(() => _isValidatingCoupon = false);
     }
+  }
+}
+
+class _InfoMessage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary,
+                      height: 1.5,
+                    ),
+                children: const [
+                  TextSpan(text: 'Las ciudades marcadas con el ícono '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Icon(Icons.location_on_rounded, size: 16, color: AppColors.primary),
+                  ),
+                  TextSpan(
+                    text: ' en la lista tienen Punto de Entrega. '
+                        'Si tu ciudad no está listada, escribinos por '
+                        'WhatsApp y coordinamos el retiro en el punto '
+                        'más cercano a tu ubicación.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -60,11 +60,15 @@ class Order {
     required this.phone,
     required this.department,
     required this.city,
-    required this.address,
+    required this.neighborhood,
+    required this.street1,
+    required this.locationType,
     required this.items,
     required this.total,
     required this.status,
+    this.street2,
     this.reference,
+    this.googleMapsLink,
     this.subtotal = 0,
     this.shippingCost = 0,
     this.discount = 0,
@@ -85,8 +89,13 @@ class Order {
   final String phone;
   final String department;
   final String city;
-  final String address;
+  final String neighborhood;
+  final String street1;
+  final String? street2;
+  final String locationType; // "Casa" o "Trabajo"
   final String? reference;
+  final String? googleMapsLink;
+  
   final List<OrderItem> items;
   final int subtotal;
   final int shippingCost;
@@ -101,14 +110,11 @@ class Order {
   final DateTime? updatedAt;
   final DateTime? paidAt;
   final String? confirmedByUid;
-  
-  // NUEVOS CAMPOS
   final int supplierCost;
   final int realShippingCost;
 
   int get itemCount => items.fold(0, (sum, it) => sum + it.quantity);
 
-  /// Ganancia neta real (Ingreso total - costo proveedor - costo envío)
   int get netProfit => total - supplierCost - realShippingCost;
 
   String get shortId =>
@@ -125,8 +131,12 @@ class Order {
         phone: map['phone'] as String? ?? '',
         department: map['department'] as String? ?? '',
         city: map['city'] as String? ?? '',
-        address: map['address'] as String? ?? '',
+        neighborhood: map['neighborhood'] as String? ?? '',
+        street1: map['street1'] as String? ?? '',
+        street2: map['street2'] as String?,
+        locationType: map['locationType'] as String? ?? 'Casa',
         reference: map['reference'] as String?,
+        googleMapsLink: map['googleMapsLink'] as String?,
         items: ((map['items'] as List?) ?? const [])
             .whereType<Map>()
             .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e)))
@@ -153,8 +163,12 @@ class Order {
         'phone': phone,
         'department': department,
         'city': city,
-        'address': address,
+        'neighborhood': neighborhood,
+        'street1': street1,
+        'street2': street2,
+        'locationType': locationType,
         'reference': reference,
+        'googleMapsLink': googleMapsLink,
         'items': items.map((e) => e.toMap()).toList(),
         'subtotal': subtotal,
         'shippingCost': shippingCost,
@@ -180,8 +194,12 @@ class Order {
     String? phone,
     String? department,
     String? city,
-    String? address,
+    String? neighborhood,
+    String? street1,
+    String? street2,
+    String? locationType,
     String? reference,
+    String? googleMapsLink,
     List<OrderItem>? items,
     int? subtotal,
     int? shippingCost,
@@ -203,8 +221,12 @@ class Order {
         phone: phone ?? this.phone,
         department: department ?? this.department,
         city: city ?? this.city,
-        address: address ?? this.address,
+        neighborhood: neighborhood ?? this.neighborhood,
+        street1: street1 ?? this.street1,
+        street2: street2 ?? this.street2,
+        locationType: locationType ?? this.locationType,
         reference: reference ?? this.reference,
+        googleMapsLink: googleMapsLink ?? this.googleMapsLink,
         items: items ?? this.items,
         subtotal: subtotal ?? this.subtotal,
         shippingCost: shippingCost ?? this.shippingCost,

@@ -77,8 +77,10 @@ class WhatsappService {
       ..writeln('📦 Pedido: #${order.shortId}')
       ..writeln('👤 Cliente: ${order.customerName}')
       ..writeln('📱 Teléfono: ${PhoneValidator.formatForDisplay(order.phone)}')
-      ..writeln('📍 Entrega: ${order.city}, ${order.department}')
-      ..writeln('🏠 Dirección: ${order.address}')
+      ..writeln('📍 Entrega: ${order.neighborhood}, ${order.city} (${order.locationType})')
+      ..writeln('🏠 Dirección: ${order.street1} ${order.street2 ?? ""}')
+      ..writeln('📌 Referencia: ${order.reference ?? "Ninguna"}')
+      ..writeln('🗺️ Maps: ${order.googleMapsLink ?? "No adjunto"}')
       ..writeln()
       ..writeln('─────────────')
       ..writeln('*ÍTEMS:*');
@@ -132,7 +134,7 @@ class WhatsappService {
         return 'Hola $name 👋\n\n'
             '🚚 Tu pedido #$id ya está en camino.\n\n'
             'En breve lo recibís en ${order.city}. Si necesitamos '
-            'contactarte para coordinar la entrega, lo haremos por el numero que nos dejaste.\n\n'
+            'contactarte para coordinar la entrega, lo haremos por este medio.\n\n'
             'Gracias por tu paciencia.';
 
       case OrderStatus.entregado:

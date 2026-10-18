@@ -108,29 +108,19 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                         decoration: BoxDecoration(
                           color: AppColors.warning.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.warning.withOpacity(0.4),
-                          ),
+                          border: Border.all(color: AppColors.warning.withOpacity(0.4)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.info_outline_rounded,
-                              size: 18,
-                              color: AppColors.warning,
-                            ),
+                            const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.warning),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Para envíos al interior el pedido mínimo es '
                                 'de ${CurrencyFormatter.format(minimum)}. '
                                 'Te faltan ${CurrencyFormatter.format(missingAmount)}.',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary,
-                                  height: 1.4,
-                                ),
+                                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.4),
                               ),
                             ),
                           ],
@@ -147,18 +137,13 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     ),
                     _SummaryRow(
                       label: 'Envío',
-                      value: shipping == 0
-                          ? 'Gratis'
-                          : CurrencyFormatter.format(shipping),
-                      valueColor:
-                          shipping == 0 ? AppColors.success : null,
+                      value: shipping == 0 ? 'Gratis' : CurrencyFormatter.format(shipping),
+                      valueColor: shipping == 0 ? AppColors.success : null,
                     ),
                     if (checkout.discountAmount > 0)
                       _SummaryRow(
-                        label:
-                            '${AppStrings.discount} (${checkout.appliedCouponCode})',
-                        value:
-                            '-${CurrencyFormatter.format(checkout.discountAmount)}',
+                        label: '${AppStrings.discount} (${checkout.appliedCouponCode})',
+                        value: '-${CurrencyFormatter.format(checkout.discountAmount)}',
                         valueColor: AppColors.success,
                       ),
                     const SizedBox(height: 8),
@@ -179,16 +164,12 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline_rounded,
-                                  size: 18, color: AppColors.danger),
+                              const Icon(Icons.error_outline_rounded, size: 18, color: AppColors.danger),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   checkout.error!,
-                                  style: const TextStyle(
-                                    color: AppColors.danger,
-                                    fontSize: 13,
-                                  ),
+                                  style: const TextStyle(color: AppColors.danger, fontSize: 13),
                                 ),
                               ),
                             ],
@@ -198,34 +179,22 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: (checkout.isSubmitting || !meetsMinimum)
-                            ? null
-                            : () => _confirm(shipping),
+                        onPressed: (checkout.isSubmitting || !meetsMinimum) ? null : () => _confirm(shipping),
                         icon: checkout.isSubmitting
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.check_rounded),
-                        label: Text(
-                          checkout.isSubmitting
-                              ? 'Registrando...'
-                              : AppStrings.confirmOrder,
-                        ),
+                        label: Text(checkout.isSubmitting ? 'Registrando...' : AppStrings.confirmOrder),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Center(
                       child: Text(
                         'El pedido se procesa una vez acreditado el pago.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelMedium
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.textMuted),
                       ),
                     ),
                   ],
@@ -243,40 +212,18 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final checkout = ref.read(checkoutControllerProvider);
     final ctrl = ref.read(checkoutControllerProvider.notifier);
 
-    if (cart.isEmpty) {
-      ctrl.setError('El carrito está vacío.');
-      return;
-    }
-    if (checkout.fullName.trim().length < 3) {
-      ctrl.setError('Ingresá tu nombre completo.');
-      return;
-    }
-    if (!PhoneValidator.isValid(checkout.phone)) {
-      ctrl.setError('Ingresá un teléfono paraguayo válido.');
-      return;
-    }
-    if (checkout.department == null || checkout.city == null) {
-      ctrl.setError('Seleccioná departamento y ciudad.');
-      return;
-    }
-    if (checkout.address.trim().length < 5) {
-      ctrl.setError('Ingresá una dirección válida.');
-      return;
-    }
-    if (checkout.holderName.trim().length < 3) {
-      ctrl.setError('Ingresá el nombre del titular de la cuenta.');
-      return;
-    }
-    if (checkout.sourceBank == null) {
-      ctrl.setError('Seleccioná el banco desde el que vas a transferir.');
-      return;
-    }
-    if (!ParaguayLocations.meetsMinimum(
-      department: checkout.department,
-      subtotal: cart.subtotal,
-    )) {
-      ctrl.setError('No cumplís con el mínimo de compra para tu zona.');
-      return;
+    // Validaciones
+    if (cart.isEmpty) return ctrl.setError('El carrito está vacío.');
+    if (checkout.fullName.trim().length < 3) return ctrl.setError('Ingresá tu nombre completo.');
+    if (!PhoneValidator.isValid(checkout.phone)) return ctrl.setError('Ingresá un teléfono válido.');
+    if (checkout.department == null || checkout.city == null) return ctrl.setError('Seleccioná departamento y ciudad.');
+    if (checkout.neighborhood.trim().isEmpty) return ctrl.setError('Ingresá tu barrio.');
+    if (checkout.street1.trim().isEmpty) return ctrl.setError('Ingresá tu calle principal.');
+    if (checkout.holderName.trim().length < 3) return ctrl.setError('Ingresá el titular de la cuenta.');
+    if (checkout.sourceBank == null) return ctrl.setError('Seleccioná tu banco.');
+
+    if (!ParaguayLocations.meetsMinimum(department: checkout.department, subtotal: cart.subtotal)) {
+      return ctrl.setError('No cumplís con el mínimo para tu zona.');
     }
 
     ctrl.setSubmitting(true);
@@ -287,24 +234,18 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
       try {
         final isBlocked = await fs.isPhoneBlacklisted(checkout.phone);
-        if (isBlocked) {
-          ctrl.setError(AppStrings.genericError);
-          return;
-        }
+        if (isBlocked) return ctrl.setError(AppStrings.genericError);
       } catch (_) {}
 
-      final total = (cart.subtotal + shipping - checkout.discountAmount)
-          .clamp(0, cart.subtotal + shipping);
+      final total = (cart.subtotal + shipping - checkout.discountAmount).clamp(0, cart.subtotal + shipping);
 
-      final items = cart.items
-          .map((it) => OrderItem(
+      final items = cart.items.map((it) => OrderItem(
                 productId: it.productId,
                 title: it.title,
                 price: it.price,
                 quantity: it.quantity,
                 imageUrl: it.imageUrl,
-              ))
-          .toList();
+              )).toList();
 
       final order = Order(
         id: '',
@@ -312,10 +253,12 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
         phone: PhoneValidator.toWhatsappFormat(checkout.phone),
         department: checkout.department!,
         city: checkout.city!,
-        address: checkout.address.trim(),
-        reference: checkout.reference.trim().isEmpty
-            ? null
-            : checkout.reference.trim(),
+        neighborhood: checkout.neighborhood.trim(),
+        street1: checkout.street1.trim(),
+        street2: checkout.street2.trim().isEmpty ? null : checkout.street2.trim(),
+        locationType: checkout.locationType,
+        reference: checkout.reference.trim().isEmpty ? null : checkout.reference.trim(),
+        googleMapsLink: checkout.googleMapsLink.trim().isEmpty ? null : checkout.googleMapsLink.trim(),
         items: items,
         subtotal: cart.subtotal,
         shippingCost: shipping,
@@ -331,32 +274,14 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
       if (checkout.appliedCouponCode != null) {
         try {
-          final coupon =
-              await fs.findCouponByCode(checkout.appliedCouponCode!);
+          final coupon = await fs.findCouponByCode(checkout.appliedCouponCode!);
           if (coupon != null) await fs.incrementCouponUsage(coupon.id);
         } catch (_) {}
       }
 
       final settings = await fs.fetchSettings();
 
-      final finalOrder = Order(
-        id: orderId,
-        customerName: order.customerName,
-        phone: order.phone,
-        department: order.department,
-        city: order.city,
-        address: order.address,
-        reference: order.reference,
-        items: order.items,
-        subtotal: order.subtotal,
-        shippingCost: order.shippingCost,
-        discount: order.discount,
-        couponCode: order.couponCode,
-        total: order.total,
-        status: order.status,
-        holderName: order.holderName,
-        sourceBank: order.sourceBank,
-      );
+      final finalOrder = order.copyWith(id: orderId);
 
       await analytics.logPurchase(finalOrder);
       await ref.read(cartControllerProvider.notifier).clear();
@@ -390,13 +315,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-    this.valueColor,
-  });
-
+  const _SummaryRow({required this.label, required this.value, this.bold = false, this.valueColor});
   final String label;
   final String value;
   final bool bold;
@@ -409,19 +328,8 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-                ),
-          ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
-                  color: valueColor ?? AppColors.textPrimary,
-                ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
+          Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: bold ? FontWeight.w700 : FontWeight.w600, color: valueColor ?? AppColors.textPrimary)),
         ],
       ),
     );

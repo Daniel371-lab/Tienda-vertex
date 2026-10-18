@@ -77,9 +77,7 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
               return const _DetailError();
             }
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref
-                  .read(analyticsServiceProvider)
-                  .logItemViewed(product);
+              ref.read(analyticsServiceProvider).logItemViewed(product);
             });
             return _buildContent(product, isWide);
           },
@@ -106,9 +104,7 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
                     itemCount: product.images.isEmpty ? 1 : product.images.length,
                     onPageChanged: (i) => setState(() => _imageIndex = i),
                     itemBuilder: (context, i) {
-                      final url = product.images.isEmpty
-                          ? ''
-                          : product.images[i];
+                      final url = product.images.isEmpty ? '' : product.images[i];
                       if (url.isEmpty) {
                         return Container(
                           color: AppColors.surfaceAlt,
@@ -125,8 +121,7 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
                           imageUrl: url,
                           fit: BoxFit.cover,
                           fadeInDuration: const Duration(milliseconds: 250),
-                          placeholder: (_, __) =>
-                              Container(color: AppColors.surfaceAlt),
+                          placeholder: (_, __) => Container(color: AppColors.surfaceAlt),
                         ),
                       );
                     },
@@ -270,24 +265,27 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
                   
                   const SizedBox(height: 24),
 
-                  // BOTONES
+                  // BOTONES CORREGIDOS
                   Row(
                     children: [
-                      // Botón Agregar
-                      Expanded(
-                        child: OutlinedButton.icon(
+                      // Botón Agregar (Solo Ícono para que no se rompa)
+                      SizedBox(
+                        height: 50,
+                        width: 60,
+                        child: OutlinedButton(
                           onPressed: product.stock > 0 ? () => _addToCart(product, quantity) : null,
-                          icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
-                          label: const Text('Agregar'),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 50),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: const Icon(Icons.add_shopping_cart_rounded, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
                       // Botón Comprar Ahora
                       Expanded(
-                        flex: 2,
                         child: FilledButton.icon(
                           onPressed: product.stock > 0 ? () => _buyNow(product, quantity) : null,
                           icon: const Icon(Icons.flash_on_rounded, size: 20),

@@ -121,8 +121,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 20),
 
+            // ── CLIENTE CON NUEVA DIRECCIÓN ──
             _Section(
-              title: 'Cliente',
+              title: 'Cliente y Entrega',
               icon: Icons.person_outline_rounded,
               children: [
                 _Field(label: 'Nombre', value: o.customerName),
@@ -133,13 +134,28 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                     ClipboardData(text: o.phone),
                   ),
                 ),
+                _Field(label: 'Tipo de lugar', value: o.locationType),
                 _Field(
                   label: 'Entrega',
-                  value: '${o.city}, ${o.department}',
+                  value: '${o.neighborhood}, ${o.city} (${o.department})',
                 ),
-                _Field(label: 'Dirección', value: o.address),
+                _Field(
+                  label: 'Dirección',
+                  value: '${o.street1} ${o.street2 ?? ""}',
+                ),
                 if (o.reference != null && o.reference!.isNotEmpty)
                   _Field(label: 'Referencia', value: o.reference!),
+                if (o.googleMapsLink != null && o.googleMapsLink!.isNotEmpty)
+                  _Field(
+                    label: 'Google Maps',
+                    value: 'Copiar link de mapa',
+                    onCopy: () {
+                      Clipboard.setData(ClipboardData(text: o.googleMapsLink!));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link de Maps copiado'), behavior: SnackBarBehavior.floating),
+                      );
+                    },
+                  ),
                 if (o.holderName != null && o.holderName!.isNotEmpty)
                   _Field(label: 'Titular del pago', value: o.holderName!),
                 if (o.sourceBank != null && o.sourceBank!.isNotEmpty)
@@ -260,13 +276,12 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     int? supplierCost;
     int? realShippingCost;
 
-    // Pedir monto si corresponde
     if (newStatus == OrderStatus.comprandoProveedor) {
       supplierCost = await _showCostDialog(
         title: 'Costo del proveedor',
         hint: 'Monto pagado (₲)',
       );
-      if (supplierCost == null) return; // Canceló
+      if (supplierCost == null) return; 
     }
 
     if (newStatus == OrderStatus.despachado) {
@@ -274,7 +289,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
         title: 'Costo de envío',
         hint: 'Monto pagado al courier (₲)',
       );
-      if (realShippingCost == null) return; // Canceló
+      if (realShippingCost == null) return; 
     }
 
     final confirmed = await showDialog<bool>(
@@ -321,7 +336,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     await _load();
     if (!mounted) return;
 
-    // Solo preguntamos por WhatsApp si el mensaje no está vacío
     final wa = ref.read(whatsappServiceProvider);
     final msg = wa.buildStatusMessage(o, newStatus);
     
@@ -505,65 +519,41 @@ class _StatusActions extends StatelessWidget {
 
   OrderStatus? _nextStatus(OrderStatus current) {
     switch (current) {
-      case OrderStatus.pendientePago:
-        return OrderStatus.pagado;
-      case OrderStatus.pagado:
-        return OrderStatus.comprandoProveedor;
-      case OrderStatus.comprandoProveedor:
-        return OrderStatus.listoDespacho;
-      case OrderStatus.listoDespacho:
-        return OrderStatus.despachado;
-      case OrderStatus.despachado:
-        return OrderStatus.entregado;
+      case OrderStatus.pendientePago: return OrderStatus.pagado;
+      case OrderStatus.pagado: return OrderStatus.comprandoProveedor;
+      case OrderStatus.comprandoProveedor: return OrderStatus.listoDespacho;
+      case OrderStatus.listoDespacho: return OrderStatus.despachado;
+      case OrderStatus.despachado: return OrderStatus.entregado;
       case OrderStatus.entregado:
-      case OrderStatus.cancelado:
-        return null;
+      case OrderStatus.cancelado: return null;
     }
   }
 
   String _labelFor(OrderStatus s) {
     switch (s) {
-      case OrderStatus.pagado:
-        return 'Confirmar pago recibido';
-      case OrderStatus.comprandoProveedor:
-        return 'Marcar comprando al proveedor';
-      case OrderStatus.listoDespacho:
-        return 'Marcar listo para despachar';
-      case OrderStatus.despachado:
-        return 'Marcar despachado';
-      case OrderStatus.entregado:
-        return 'Marcar entregado';
-      case OrderStatus.cancelado:
-        return 'Cancelar';
-      default:
-        return s.label;
+      case OrderStatus.pagado: return 'Confirmar pago recibido';
+      case OrderStatus.comprandoProveedor: return 'Marcar comprando al proveedor';
+      case OrderStatus.listoDespacho: return 'Marcar listo para despachar';
+      case OrderStatus.despachado: return 'Marcar despachado';
+      case OrderStatus.entregado: return 'Marcar entregado';
+      default: return s.label;
     }
   }
 
   IconData _iconFor(OrderStatus s) {
     switch (s) {
-      case OrderStatus.pagado:
-        return Icons.check_circle_outline_rounded;
-      case OrderStatus.comprandoProveedor:
-        return Icons.shopping_cart_outlined;
-      case OrderStatus.listoDespacho:
-        return Icons.inventory_2_outlined;
-      case OrderStatus.despachado:
-        return Icons.local_shipping_outlined;
-      case OrderStatus.entregado:
-        return Icons.verified_outlined;
-      default:
-        return Icons.arrow_forward_rounded;
+      case OrderStatus.pagado: return Icons.check_circle_outline_rounded;
+      case OrderStatus.comprandoProveedor: return Icons.shopping_cart_outlined;
+      case OrderStatus.listoDespacho: return Icons.inventory_2_outlined;
+      case OrderStatus.despachado: return Icons.local_shipping_outlined;
+      case OrderStatus.entregado: return Icons.verified_outlined;
+      default: return Icons.arrow_forward_rounded;
     }
   }
 }
 
 class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
+  const _Section({required this.title, required this.icon, required this.children});
   final String title;
   final IconData icon;
   final List<Widget> children;
@@ -586,12 +576,7 @@ class _Section extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 title.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                  letterSpacing: 0.8,
-                ),
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary, letterSpacing: 0.8),
               ),
             ],
           ),
@@ -604,11 +589,7 @@ class _Section extends StatelessWidget {
 }
 
 class _Field extends StatelessWidget {
-  const _Field({
-    required this.label,
-    required this.value,
-    this.onCopy,
-  });
+  const _Field({required this.label, required this.value, this.onCopy});
   final String label;
   final String value;
   final VoidCallback? onCopy;
@@ -622,23 +603,10 @@ class _Field extends StatelessWidget {
         children: [
           SizedBox(
             width: 110,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500)),
           ),
           Expanded(
-            child: Text(
-              value.isEmpty ? '—' : value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: Text(value.isEmpty ? '—' : value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           ),
           if (onCopy != null)
             InkWell(
@@ -646,11 +614,7 @@ class _Field extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               child: const Padding(
                 padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.copy_rounded,
-                  size: 14,
-                  color: AppColors.textMuted,
-                ),
+                child: Icon(Icons.copy_rounded, size: 14, color: AppColors.primary),
               ),
             ),
         ],
@@ -674,32 +638,13 @@ class _OrderItemRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                ),
+                Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.3)),
                 const SizedBox(height: 3),
-                Text(
-                  '${item.quantity} × ${CurrencyFormatter.format(item.price)}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                  ),
-                ),
+                Text('${item.quantity} × ${CurrencyFormatter.format(item.price)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
           ),
-          Text(
-            CurrencyFormatter.format(item.lineTotal),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text(CurrencyFormatter.format(item.lineTotal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -707,12 +652,7 @@ class _OrderItemRow extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-    this.valueColor,
-  });
+  const _SummaryRow({required this.label, required this.value, this.bold = false, this.valueColor});
   final String label;
   final String value;
   final bool bold;
@@ -725,22 +665,8 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              color: bold ? AppColors.textPrimary : AppColors.textSecondary,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: bold ? 16 : 13,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-              color: valueColor ?? AppColors.textPrimary,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: bold ? FontWeight.w700 : FontWeight.w500, color: bold ? AppColors.textPrimary : AppColors.textSecondary)),
+          Text(value, style: TextStyle(fontSize: bold ? 16 : 13, fontWeight: bold ? FontWeight.w800 : FontWeight.w600, color: valueColor ?? AppColors.textPrimary)),
         ],
       ),
     );
@@ -748,12 +674,7 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
-    required this.label,
-    this.date,
-    this.isFirst = false,
-    this.isLast = false,
-  });
+  const _TimelineRow({required this.label, this.date, this.isFirst = false, this.isLast = false});
   final String label;
   final DateTime? date;
   final bool isFirst;
@@ -768,20 +689,8 @@ class _TimelineRow extends StatelessWidget {
         children: [
           Column(
             children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              if (!isLast)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: AppColors.border,
-                ),
+              Container(width: 10, height: 10, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+              if (!isLast) Container(width: 2, height: 24, color: AppColors.border),
             ],
           ),
           const SizedBox(width: 12),
@@ -789,21 +698,8 @@ class _TimelineRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (date != null)
-                  Text(
-                    DateHelpers.dateTime(date),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
+                Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                if (date != null) Text(DateHelpers.dateTime(date), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
           ),
