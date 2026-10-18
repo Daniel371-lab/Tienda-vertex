@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart'; // <-- Paquete para imprimir/compartir
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -10,6 +11,7 @@ import '../../../core/utils/phone_validator.dart';
 import '../../../models/order_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../controllers/admin_orders_controller.dart';
+import '../utils/pdf_generator.dart'; // <-- Nuestro generador
 import '../widgets/order_status_badge.dart';
 
 class OrderDetailView extends ConsumerStatefulWidget {
@@ -23,6 +25,7 @@ class OrderDetailView extends ConsumerStatefulWidget {
 class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   Order? _order;
   bool _loading = true;
+  bool _generatingPdf = false; // Estado para el botón de PDF
   String? _error;
 
   @override
@@ -33,9 +36,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
   Future<void> _load() async {
     try {
-      final o = await ref
-          .read(firestoreServiceProvider)
-          .findOrderById(widget.orderId);
+      final o = await ref.read(firestoreServiceProvider).findOrderById(widget.orderId);
       if (!mounted) return;
       setState(() {
         _order = o;
@@ -50,14 +51,34 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     }
   }
 
+  Future<void> _printReceipt(Order o) async {
+    setState(() => _generatingPdf = true);
+    try {
+      // Generamos el PDF
+      final pdfBytes = await PdfGenerator.generateReceipt(o);
+      
+      if (!mounted) return;
+      
+      // Abrimos la pantalla de impresión nativa (que también permite compartir por WhatsApp)
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdfBytes,
+        name: 'Comprobante_${o.shortId}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: AppColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
     }
 
     if (_error != null || _order == null) {
@@ -69,12 +90,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
           ),
           title: const Text('Pedido'),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(_error ?? 'Pedido no encontrado'),
-          ),
-        ),
+        body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error ?? 'Pedido no encontrado'))),
       );
     }
 
@@ -94,12 +110,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
             tooltip: 'Copiar ID completo',
             onPressed: () {
               Clipboard.setData(ClipboardData(text: o.id));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('ID copiado'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID copiado'), behavior: SnackBarBehavior.floating));
             },
             icon: const Icon(Icons.copy_rounded),
           ),
@@ -132,16 +143,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                   onCopy: () => Clipboard.setData(ClipboardData(text: o.phone)),
                 ),
                 _Field(label: 'Tipo', value: o.locationType),
-                _Field(
-                  label: 'Ciudad/Barrio',
-                  value: '${o.neighborhood}, ${o.city} (${o.department})',
-                ),
-                _Field(
-                  label: 'Dirección',
-                  value: '${o.street1} ${o.street2 ?? ""}',
-                ),
-                if (o.reference != null && o.reference!.isNotEmpty)
-                  _Field(label: 'Referencia', value: o.reference!),
+                _Field(label: 'Ciudad/Barrio', value: '${o.neighborhood}, ${o.city} (${o.department})'),
+                _Field(label: 'Dirección', value: '${o.street1} ${o.street2 ?? ""}'),
+                if (o.reference != null && o.reference!.isNotEmpty) _Field(label: 'Referencia', value: o.reference!),
                 if (o.googleMapsLink != null && o.googleMapsLink!.isNotEmpty)
                   _Field(
                     label: 'Google Maps',
@@ -151,10 +155,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copiado'), behavior: SnackBarBehavior.floating));
                     },
                   ),
-                if (o.holderName != null && o.holderName!.isNotEmpty)
-                  _Field(label: 'Titular pago', value: o.holderName!),
-                if (o.sourceBank != null && o.sourceBank!.isNotEmpty)
-                  _Field(label: 'Banco', value: o.sourceBank!),
               ],
             ),
 
@@ -165,10 +165,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
               icon: Icons.shopping_bag_outlined,
               children: [
                 for (var i = 0; i < o.items.length; i++)
-                  _OrderItemRow(
-                    item: o.items[i],
-                    isLast: i == o.items.length - 1,
-                  ),
+                  _OrderItemRow(item: o.items[i], isLast: i == o.items.length - 1),
               ],
             ),
 
@@ -178,23 +175,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
               title: 'Pago y Costos',
               icon: Icons.receipt_outlined,
               children: [
-                _SummaryRow(
-                  label: 'Ingreso (Cliente pagó)',
-                  value: CurrencyFormatter.format(o.total),
-                  bold: true,
-                ),
-                if (o.supplierCost > 0)
-                  _SummaryRow(
-                    label: 'Costo Proveedor',
-                    value: '-${CurrencyFormatter.format(o.supplierCost)}',
-                    valueColor: AppColors.danger,
-                  ),
-                if (o.realShippingCost > 0)
-                  _SummaryRow(
-                    label: 'Costo Envío',
-                    value: '-${CurrencyFormatter.format(o.realShippingCost)}',
-                    valueColor: AppColors.danger,
-                  ),
+                _SummaryRow(label: 'Ingreso (Cliente pagó)', value: CurrencyFormatter.format(o.total), bold: true),
+                if (o.supplierCost > 0) _SummaryRow(label: 'Costo Proveedor', value: '-${CurrencyFormatter.format(o.supplierCost)}', valueColor: AppColors.danger),
+                if (o.realShippingCost > 0) _SummaryRow(label: 'Costo Envío', value: '-${CurrencyFormatter.format(o.realShippingCost)}', valueColor: AppColors.danger),
                 if (o.supplierCost > 0 || o.realShippingCost > 0) ...[
                   const Divider(height: 16),
                   _SummaryRow(
@@ -219,24 +202,32 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
+            // ── BOTONES SOLO ÍCONOS ──
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _contactViaWhatsapp(o),
-                    icon: const Icon(Icons.chat_rounded, size: 18, color: AppColors.whatsapp),
-                    label: const Text('Abrir chat', style: TextStyle(color: AppColors.textPrimary)),
-                  ),
+                _IconActionButton(
+                  icon: Icons.chat_rounded,
+                  color: AppColors.whatsapp,
+                  tooltip: 'Abrir chat',
+                  onPressed: () => _contactViaWhatsapp(o),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _confirmDelete(o),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.danger),
-                    label: const Text('Eliminar', style: TextStyle(color: AppColors.danger)),
-                  ),
+                const SizedBox(width: 20),
+                _IconActionButton(
+                  icon: Icons.print_rounded,
+                  color: AppColors.primary,
+                  tooltip: 'Generar Comprobante',
+                  isLoading: _generatingPdf,
+                  onPressed: () => _printReceipt(o),
+                ),
+                const SizedBox(width: 20),
+                _IconActionButton(
+                  icon: Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                  tooltip: 'Eliminar',
+                  onPressed: () => _confirmDelete(o),
                 ),
               ],
             ),
@@ -246,6 +237,8 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       ),
     );
   }
+
+  // [El resto de los métodos _changeStatus, _showCostDialog, _contactViaWhatsapp y _confirmDelete se mantienen exactamente igual que en el código anterior]
 
   Future<void> _changeStatus(OrderStatus newStatus) async {
     final o = _order;
@@ -279,19 +272,12 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     if (confirmed != true || !mounted) return;
 
     final ctrl = ref.read(adminOrdersControllerProvider.notifier);
-    final ok = await ctrl.updateStatus(
-      orderId: o.id,
-      newStatus: newStatus,
-      supplierCost: supplierCost,
-      realShippingCost: realShippingCost,
-    );
+    final ok = await ctrl.updateStatus(orderId: o.id, newStatus: newStatus, supplierCost: supplierCost, realShippingCost: realShippingCost);
 
     if (!mounted) return;
 
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo actualizar'), backgroundColor: AppColors.danger, behavior: SnackBarBehavior.floating),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo actualizar'), backgroundColor: AppColors.danger, behavior: SnackBarBehavior.floating));
       return;
     }
 
@@ -383,6 +369,55 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   }
 }
 
+// ── NUEVO WIDGET PARA BOTONES DE ÍCONO ──
+class _IconActionButton extends StatelessWidget {
+  const _IconActionButton({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Material(
+          color: color.withOpacity(0.1),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: isLoading ? null : onPressed,
+            customBorder: const CircleBorder(),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: isLoading
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                    )
+                  : Icon(icon, color: color, size: 24),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          tooltip,
+          style: TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+}
+
+// [Los sub-widgets _StatusActions, _Section, _Field, _OrderItemRow, _SummaryRow y _TimelineRow se mantienen exactamente igual]
 class _StatusActions extends StatelessWidget {
   const _StatusActions({required this.order, required this.onChangeStatus, required this.onCancel});
   final Order order;
