@@ -121,7 +121,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 20),
 
-            // ── CLIENTE CON NUEVA DIRECCIÓN ──
             _Section(
               title: 'Cliente y Entrega',
               icon: Icons.person_outline_rounded,
@@ -130,13 +129,11 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                 _Field(
                   label: 'Teléfono',
                   value: PhoneValidator.formatForDisplay(o.phone),
-                  onCopy: () => Clipboard.setData(
-                    ClipboardData(text: o.phone),
-                  ),
+                  onCopy: () => Clipboard.setData(ClipboardData(text: o.phone)),
                 ),
-                _Field(label: 'Tipo de lugar', value: o.locationType),
+                _Field(label: 'Tipo', value: o.locationType),
                 _Field(
-                  label: 'Entrega',
+                  label: 'Ciudad/Barrio',
                   value: '${o.neighborhood}, ${o.city} (${o.department})',
                 ),
                 _Field(
@@ -148,18 +145,16 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                 if (o.googleMapsLink != null && o.googleMapsLink!.isNotEmpty)
                   _Field(
                     label: 'Google Maps',
-                    value: 'Copiar link de mapa',
+                    value: 'Copiar link',
                     onCopy: () {
                       Clipboard.setData(ClipboardData(text: o.googleMapsLink!));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Link de Maps copiado'), behavior: SnackBarBehavior.floating),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copiado'), behavior: SnackBarBehavior.floating));
                     },
                   ),
                 if (o.holderName != null && o.holderName!.isNotEmpty)
-                  _Field(label: 'Titular del pago', value: o.holderName!),
+                  _Field(label: 'Titular pago', value: o.holderName!),
                 if (o.sourceBank != null && o.sourceBank!.isNotEmpty)
-                  _Field(label: 'Banco emisor', value: o.sourceBank!),
+                  _Field(label: 'Banco', value: o.sourceBank!),
               ],
             ),
 
@@ -218,18 +213,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
               title: 'Historial',
               icon: Icons.timeline_rounded,
               children: [
-                _TimelineRow(
-                  label: 'Creado',
-                  date: o.createdAt,
-                  isFirst: true,
-                ),
-                if (o.paidAt != null)
-                  _TimelineRow(label: 'Pago confirmado', date: o.paidAt),
-                _TimelineRow(
-                  label: 'Última actualización',
-                  date: o.updatedAt,
-                  isLast: true,
-                ),
+                _TimelineRow(label: 'Creado', date: o.createdAt, isFirst: true),
+                if (o.paidAt != null) _TimelineRow(label: 'Pago confirmado', date: o.paidAt),
+                _TimelineRow(label: 'Última actualización', date: o.updatedAt, isLast: true),
               ],
             ),
 
@@ -240,24 +226,16 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _contactViaWhatsapp(o),
-                    icon: const Icon(Icons.chat_rounded,
-                        size: 18, color: AppColors.whatsapp),
-                    label: const Text(
-                      'Abrir chat',
-                      style: TextStyle(color: AppColors.textPrimary),
-                    ),
+                    icon: const Icon(Icons.chat_rounded, size: 18, color: AppColors.whatsapp),
+                    label: const Text('Abrir chat', style: TextStyle(color: AppColors.textPrimary)),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _confirmDelete(o),
-                    icon: const Icon(Icons.delete_outline_rounded,
-                        size: 18, color: AppColors.danger),
-                    label: const Text(
-                      'Eliminar',
-                      style: TextStyle(color: AppColors.danger),
-                    ),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.danger),
+                    label: const Text('Eliminar', style: TextStyle(color: AppColors.danger)),
                   ),
                 ),
               ],
@@ -277,19 +255,13 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     int? realShippingCost;
 
     if (newStatus == OrderStatus.comprandoProveedor) {
-      supplierCost = await _showCostDialog(
-        title: 'Costo del proveedor',
-        hint: 'Monto pagado (₲)',
-      );
-      if (supplierCost == null) return; 
+      supplierCost = await _showCostDialog(title: 'Costo del proveedor', hint: 'Monto pagado (₲)');
+      if (supplierCost == null) return;
     }
 
     if (newStatus == OrderStatus.despachado) {
-      realShippingCost = await _showCostDialog(
-        title: 'Costo de envío',
-        hint: 'Monto pagado al courier (₲)',
-      );
-      if (realShippingCost == null) return; 
+      realShippingCost = await _showCostDialog(title: 'Costo de envío', hint: 'Monto pagado al courier (₲)');
+      if (realShippingCost == null) return;
     }
 
     final confirmed = await showDialog<bool>(
@@ -298,14 +270,8 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
         title: Text('Marcar como "${newStatus.label}"'),
         content: const Text('Se guardará el nuevo estado.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: const Text('Confirmar'),
-          ),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: const Text('Confirmar')),
         ],
       ),
     );
@@ -324,11 +290,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo actualizar el estado'),
-          backgroundColor: AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
+        const SnackBar(content: Text('No se pudo actualizar'), backgroundColor: AppColors.danger, behavior: SnackBarBehavior.floating),
       );
       return;
     }
@@ -344,22 +306,14 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
         context: context,
         builder: (dialogCtx) => AlertDialog(
           title: const Text('Estado actualizado'),
-          content: Text(
-            '¿Querés avisarle al cliente por WhatsApp que su pedido '
-            'ahora está "${newStatus.label}"?',
-          ),
+          content: Text('¿Querés avisarle al cliente por WhatsApp que su pedido ahora está "${newStatus.label}"?'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogCtx).pop(false),
-              child: const Text('Después'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: const Text('Después')),
             FilledButton.icon(
               onPressed: () => Navigator.of(dialogCtx).pop(true),
               icon: const Icon(Icons.chat_rounded, size: 18),
               label: const Text('Enviar WhatsApp'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.whatsapp,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.whatsapp),
             ),
           ],
         ),
@@ -367,18 +321,12 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
       if (sendWa == true && mounted) {
         final updated = o.copyWith(status: newStatus);
-        await wa.contactCustomerAboutStatus(
-          order: updated,
-          newStatus: newStatus,
-        );
+        await wa.contactCustomerAboutStatus(order: updated, newStatus: newStatus);
       }
     }
   }
 
-  Future<int?> _showCostDialog({
-    required String title,
-    required String hint,
-  }) async {
+  Future<int?> _showCostDialog({required String title, required String hint}) async {
     final ctrl = TextEditingController();
     final result = await showDialog<int>(
       context: context,
@@ -392,15 +340,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
           autofocus: true,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(null),
-            child: const Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(null), child: const Text('Cancelar')),
           FilledButton(
-            onPressed: () {
-              final val = int.tryParse(ctrl.text);
-              Navigator.of(dialogCtx).pop(val);
-            },
+            onPressed: () => Navigator.of(dialogCtx).pop(int.tryParse(ctrl.text)),
             child: const Text('Guardar'),
           ),
         ],
@@ -411,16 +353,8 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
   Future<void> _contactViaWhatsapp(Order o) async {
     final wa = ref.read(whatsappServiceProvider);
-    final message = wa.buildStatusMessage(
-      o,
-      o.status == OrderStatus.pendientePago
-          ? OrderStatus.pagado
-          : o.status,
-    );
-    final msg = message.isEmpty
-        ? 'Hola ${o.customerName.split(' ').first} 👋'
-        : message;
-
+    final message = wa.buildStatusMessage(o, o.status == OrderStatus.pendientePago ? OrderStatus.pagado : o.status);
+    final msg = message.isEmpty ? 'Hola ${o.customerName.split(' ').first} 👋' : message;
     await wa.openChat(phone: o.phone, message: msg);
   }
 
@@ -429,54 +363,28 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: const Text('Eliminar pedido'),
-        content: Text(
-          '¿Eliminar el pedido #${o.shortId} definitivamente?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
+        content: Text('¿Eliminar el pedido #${o.shortId} definitivamente?\n\nEsta acción no se puede deshacer.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: AppColors.danger),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: const Text('Eliminar', style: TextStyle(color: AppColors.danger))),
         ],
       ),
     );
 
     if (ok != true || !mounted) return;
 
-    final result = await ref
-        .read(adminOrdersControllerProvider.notifier)
-        .deleteOrder(o.id);
-
+    final result = await ref.read(adminOrdersControllerProvider.notifier).deleteOrder(o.id);
     if (!mounted) return;
 
     if (result) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pedido eliminado'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pedido eliminado'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
       context.go('/admin/pedidos');
     }
   }
 }
 
 class _StatusActions extends StatelessWidget {
-  const _StatusActions({
-    required this.order,
-    required this.onChangeStatus,
-    required this.onCancel,
-  });
-
+  const _StatusActions({required this.order, required this.onChangeStatus, required this.onCancel});
   final Order order;
   final void Function(OrderStatus) onChangeStatus;
   final VoidCallback onCancel;
@@ -484,8 +392,7 @@ class _StatusActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = _nextStatus(order.status);
-    final canCancel = order.status != OrderStatus.entregado &&
-        order.status != OrderStatus.cancelado;
+    final canCancel = order.status != OrderStatus.entregado && order.status != OrderStatus.cancelado;
 
     return Column(
       children: [
@@ -504,12 +411,8 @@ class _StatusActions extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: onCancel,
-              icon: const Icon(Icons.cancel_outlined,
-                  size: 18, color: AppColors.danger),
-              label: const Text(
-                'Cancelar pedido',
-                style: TextStyle(color: AppColors.danger),
-              ),
+              icon: const Icon(Icons.cancel_outlined, size: 18, color: AppColors.danger),
+              label: const Text('Cancelar pedido', style: TextStyle(color: AppColors.danger)),
             ),
           ),
         ],
@@ -532,8 +435,8 @@ class _StatusActions extends StatelessWidget {
   String _labelFor(OrderStatus s) {
     switch (s) {
       case OrderStatus.pagado: return 'Confirmar pago recibido';
-      case OrderStatus.comprandoProveedor: return 'Marcar comprando al proveedor';
-      case OrderStatus.listoDespacho: return 'Marcar listo para despachar';
+      case OrderStatus.comprandoProveedor: return 'Comprando al proveedor';
+      case OrderStatus.listoDespacho: return 'Listo para despachar';
       case OrderStatus.despachado: return 'Marcar despachado';
       case OrderStatus.entregado: return 'Marcar entregado';
       default: return s.label;
@@ -574,10 +477,7 @@ class _Section extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary, letterSpacing: 0.8),
-              ),
+              Text(title.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary, letterSpacing: 0.8)),
             ],
           ),
           const SizedBox(height: 12),
@@ -601,21 +501,13 @@ class _Field extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500)),
-          ),
-          Expanded(
-            child: Text(value.isEmpty ? '—' : value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          ),
+          SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500))),
+          Expanded(child: Text(value.isEmpty ? '—' : value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
           if (onCopy != null)
             InkWell(
               onTap: onCopy,
               borderRadius: BorderRadius.circular(6),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(Icons.copy_rounded, size: 14, color: AppColors.primary),
-              ),
+              child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.copy_rounded, size: 14, color: AppColors.primary)),
             ),
         ],
       ),

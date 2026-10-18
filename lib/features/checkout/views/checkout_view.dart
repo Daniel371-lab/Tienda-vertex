@@ -212,7 +212,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
     final checkout = ref.read(checkoutControllerProvider);
     final ctrl = ref.read(checkoutControllerProvider.notifier);
 
-    // Validaciones
     if (cart.isEmpty) return ctrl.setError('El carrito está vacío.');
     if (checkout.fullName.trim().length < 3) return ctrl.setError('Ingresá tu nombre completo.');
     if (!PhoneValidator.isValid(checkout.phone)) return ctrl.setError('Ingresá un teléfono válido.');
@@ -281,7 +280,29 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
       final settings = await fs.fetchSettings();
 
-      final finalOrder = order.copyWith(id: orderId);
+      // FIX: Creamos un objeto Order nuevo en vez de usar copyWith(id)
+      final finalOrder = Order(
+        id: orderId,
+        customerName: order.customerName,
+        phone: order.phone,
+        department: order.department,
+        city: order.city,
+        neighborhood: order.neighborhood,
+        street1: order.street1,
+        street2: order.street2,
+        locationType: order.locationType,
+        reference: order.reference,
+        googleMapsLink: order.googleMapsLink,
+        items: order.items,
+        subtotal: order.subtotal,
+        shippingCost: order.shippingCost,
+        discount: order.discount,
+        couponCode: order.couponCode,
+        total: order.total,
+        status: order.status,
+        holderName: order.holderName,
+        sourceBank: order.sourceBank,
+      );
 
       await analytics.logPurchase(finalOrder);
       await ref.read(cartControllerProvider.notifier).clear();
