@@ -45,14 +45,12 @@ class FirestoreService {
 
   // ── PRODUCTOS ─────────────────────────────────────────────────
 
+  /// [En la clase FirestoreService, reemplazar estas funciones específicas]
+
   /// Busca productos en Firebase usando el campo searchTitle.
-  /// Gasta lecturas solo de los productos que coinciden con la búsqueda.
   Future<List<Product>> searchProducts(String query) async {
     if (query.trim().isEmpty) return [];
-    
     final cleanQuery = Product.buildSearchTitle(query.trim());
-    
-    // Busca los que empiecen con la letra que escribió el cliente
     final snap = await _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
@@ -60,7 +58,6 @@ class FirestoreService {
         .where('searchTitle', isLessThan: '$cleanQuery\uf8ff')
         .limit(pageSize)
         .get();
-        
     return snap.docs.map((d) => Product.fromFirestore(d)).toList();
   }
 
@@ -87,7 +84,7 @@ class FirestoreService {
     final snap = await _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryId', isEqualTo: categoryId)
+        .where('categoryIds', arrayContains: categoryId) // <-- CAMBIO AQUÍ
         .where('isFeaturedInCategories', arrayContains: _slugOfCategoryCache[categoryId])
         .limit(limit)
         .get();
@@ -102,7 +99,7 @@ class FirestoreService {
     Query query = _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryId', isEqualTo: categoryId);
+        .where('categoryIds', arrayContains: categoryId); // <-- CAMBIO AQUÍ
 
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 
@@ -129,8 +126,8 @@ class FirestoreService {
     Query query = _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryId', isEqualTo: categoryId)
-        .where('subcategoryId', isEqualTo: subcategoryId);
+        .where('categoryIds', arrayContains: categoryId) // <-- CAMBIO AQUÍ
+        .where('subcategoryIds', arrayContains: subcategoryId); // <-- CAMBIO AQUÍ
 
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 

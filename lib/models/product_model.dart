@@ -6,10 +6,10 @@ class Product {
     required this.title,
     required this.description,
     required this.price,
-    required this.categoryId,
+    required this.categoryIds, // <-- AHORA ES UNA LISTA
     required this.images,
+    this.subcategoryIds = const [], // <-- AHORA ES UNA LISTA
     this.compareAtPrice,
-    this.subcategoryId,
     this.stock = 0,
     this.isFeatured = false,
     this.isFeaturedGeneral = false,
@@ -25,8 +25,8 @@ class Product {
   final String description;
   final int price;
   final int? compareAtPrice;
-  final String categoryId;
-  final String? subcategoryId;
+  final List<String> categoryIds;
+  final List<String> subcategoryIds;
   final List<String> images;
   final int stock;
   final bool isFeatured;
@@ -46,10 +46,8 @@ class Product {
 
   String get mainImage => images.isNotEmpty ? images.first : '';
 
-  /// Genera un texto limpio (minúsculas y sin tildes) para el buscador.
   static String buildSearchTitle(String text) {
-    return text
-        .toLowerCase()
+    return text.toLowerCase()
         .replaceAll(RegExp(r'[áàäâ]'), 'a')
         .replaceAll(RegExp(r'[éèëê]'), 'e')
         .replaceAll(RegExp(r'[íìïî]'), 'i')
@@ -63,33 +61,49 @@ class Product {
     return Product.fromMap(doc.id, data);
   }
 
-  factory Product.fromMap(String id, Map<String, dynamic> map) => Product(
-        id: id,
-        title: map['title'] as String? ?? '',
-        description: map['description'] as String? ?? '',
-        price: (map['price'] as num?)?.toInt() ?? 0,
-        compareAtPrice: (map['compareAtPrice'] as num?)?.toInt(),
-        categoryId: map['categoryId'] as String? ?? '',
-        subcategoryId: map['subcategoryId'] as String?,
-        images: (map['images'] as List?)?.whereType<String>().toList() ?? const [],
-        stock: (map['stock'] as num?)?.toInt() ?? 0,
-        isFeatured: map['isFeatured'] as bool? ?? false,
-        isFeaturedGeneral: map['isFeaturedGeneral'] as bool? ?? false,
-        isFeaturedInCategories:
-            (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ?? const [],
-        isActive: map['isActive'] as bool? ?? true,
-        tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
-        createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
-        updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
-      );
+  factory Product.fromMap(String id, Map<String, dynamic> map) {
+    // Retrocompatibilidad: si el producto es viejo y tiene categoryId (String), lo pasamos a Lista.
+    List<String> cats = [];
+    if (map['categoryIds'] != null) {
+      cats = (map['categoryIds'] as List).whereType<String>().toList();
+    } else if (map['categoryId'] != null) {
+      cats = [map['categoryId'] as String];
+    }
+
+    List<String> subs = [];
+    if (map['subcategoryIds'] != null) {
+      subs = (map['subcategoryIds'] as List).whereType<String>().toList();
+    } else if (map['subcategoryId'] != null) {
+      subs = [map['subcategoryId'] as String];
+    }
+
+    return Product(
+      id: id,
+      title: map['title'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      price: (map['price'] as num?)?.toInt() ?? 0,
+      compareAtPrice: (map['compareAtPrice'] as num?)?.toInt(),
+      categoryIds: cats,
+      subcategoryIds: subs,
+      images: (map['images'] as List?)?.whereType<String>().toList() ?? const [],
+      stock: (map['stock'] as num?)?.toInt() ?? 0,
+      isFeatured: map['isFeatured'] as bool? ?? false,
+      isFeaturedGeneral: map['isFeaturedGeneral'] as bool? ?? false,
+      isFeaturedInCategories: (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ?? const [],
+      isActive: map['isActive'] as bool? ?? true,
+      tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         'title': title,
         'description': description,
         'price': price,
         'compareAtPrice': compareAtPrice,
-        'categoryId': categoryId,
-        'subcategoryId': subcategoryId,
+        'categoryIds': categoryIds,
+        'subcategoryIds': subcategoryIds,
         'images': images,
         'stock': stock,
         'isFeatured': isFeatured,
@@ -97,7 +111,7 @@ class Product {
         'isFeaturedInCategories': isFeaturedInCategories,
         'isActive': isActive,
         'tags': tags,
-        'searchTitle': buildSearchTitle(title), // <-- SE GENERA AUTOMÁTICAMENTE
+        'searchTitle': buildSearchTitle(title),
         'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -107,8 +121,8 @@ class Product {
     String? description,
     int? price,
     int? compareAtPrice,
-    String? categoryId,
-    String? subcategoryId,
+    List<String>? categoryIds,
+    List<String>? subcategoryIds,
     List<String>? images,
     int? stock,
     bool? isFeatured,
@@ -123,8 +137,8 @@ class Product {
         description: description ?? this.description,
         price: price ?? this.price,
         compareAtPrice: compareAtPrice ?? this.compareAtPrice,
-        categoryId: categoryId ?? this.categoryId,
-        subcategoryId: subcategoryId ?? this.subcategoryId,
+        categoryIds: categoryIds ?? this.categoryIds,
+        subcategoryIds: subcategoryIds ?? this.subcategoryIds,
         images: images ?? this.images,
         stock: stock ?? this.stock,
         isFeatured: isFeatured ?? this.isFeatured,

@@ -197,43 +197,24 @@ class StoreController extends StateNotifier<StoreState> {
   }
 
   Future<void> _loadExplore(String? categorySlug, String? subcategorySlug) async {
-    if (categorySlug == null) {
-      await _loadGeneral();
-      return;
-    }
-    final category = await _resolveCategory(categorySlug);
-    if (category == null) {
-      await _loadGeneral();
-      return;
-    }
-
-    Subcategory? sub;
-    if (subcategorySlug != null) {
-      try {
-        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
-      } catch (_) {
-        sub = null;
-      }
-    }
-
-    state = state.copyWith(
-      activeCategory: category,
-      activeSubcategory: sub,
-      selectedSubcategoryId: sub?.id,
-    );
-
-    try {
-      final page = await _fs.fetchAllByCategory(categoryId: category.id);
-      state = state.copyWith(
-        products: page.products,
-        lastDoc: page.lastDoc,
-        hasMore: page.hasMore,
-        isLoadingProducts: false,
-      );
-    } catch (e) {
-      state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
-    }
+  if (categorySlug == null) { await _loadGeneral(); return; }
+  final category = await _resolveCategory(categorySlug);
+  if (category == null) { await _loadGeneral(); return; }
+  
+  Subcategory? sub;
+  if (subcategorySlug != null) {
+    try { sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug); } catch (_) { sub = null; }
   }
+
+  state = state.copyWith(activeCategory: category, activeSubcategory: sub, selectedSubcategoryId: sub?.id);
+
+  try {
+    final page = await _fs.fetchAllByCategory(categoryId: category.id); // Usa arrayContains internamente
+    state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
+  } catch (e) {
+    state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+  }
+}
 
   Future<void> _loadSpecialized(String? categorySlug) async {
     if (categorySlug == null) {
@@ -259,30 +240,15 @@ class StoreController extends StateNotifier<StoreState> {
   }
 
   Future<void> _loadSubcategory(String? categorySlug, String? subcategorySlug) async {
-    if (categorySlug == null) {
-      await _loadGeneral();
-      return;
-    }
+    if (categorySlug == null) { await _loadGeneral(); return; }
     final category = await _resolveCategory(categorySlug);
-    if (category == null) {
-      await _loadGeneral();
-      return;
-    }
+    if (category == null) { await _loadGeneral(); return; }
 
     if (subcategorySlug == 'todos') {
-      state = state.copyWith(
-        activeCategory: category,
-        clearActiveSubcategory: true,
-        clearSelectedSubcategory: true,
-      );
+      state = state.copyWith(activeCategory: category, clearActiveSubcategory: true, clearSelectedSubcategory: true);
       try {
         final page = await _fs.fetchAllByCategory(categoryId: category.id);
-        state = state.copyWith(
-          products: page.products,
-          lastDoc: page.lastDoc,
-          hasMore: page.hasMore,
-          isLoadingProducts: false,
-        );
+        state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
       } catch (e) {
         state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
       }
@@ -291,44 +257,17 @@ class StoreController extends StateNotifier<StoreState> {
 
     Subcategory? sub;
     if (subcategorySlug != null) {
-      try {
-        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
-      } catch (_) {
-        sub = null;
-      }
+      try { sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug); } catch (_) { sub = null; }
     }
-    state = state.copyWith(
-      activeCategory: category,
-      activeSubcategory: sub,
-      selectedSubcategoryId: sub?.id,
-    );
+    state = state.copyWith(activeCategory: category, activeSubcategory: sub, selectedSubcategoryId: sub?.id);
     try {
-      final page = await _fs.fetchAllBySubcategory(
-        categoryId: category.id,
-        subcategoryId: sub?.id ?? '',
-      );
-      state = state.copyWith(
-        products: page.products,
-        lastDoc: page.lastDoc,
-        hasMore: page.hasMore,
-        isLoadingProducts: false,
-      );
+      final page = await _fs.fetchAllBySubcategory(categoryId: category.id, subcategoryId: sub?.id ?? '');
+      state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
     } catch (e) {
       state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
     }
   }
-
-  void selectSubcategory(String? subcategoryId) {
-    if (subcategoryId == null) {
-      state = state.copyWith(clearSelectedSubcategory: true, clearActiveSubcategory: true);
-    } else {
-      final sub = state.activeCategory?.subcategories
-          .where((s) => s.id == subcategoryId)
-          .firstOrNull;
-      state = state.copyWith(selectedSubcategoryId: subcategoryId, activeSubcategory: sub);
-    }
-  }
-
+  
   Future<void> loadMore() async {
     if (state.isSearching || !state.hasMore || state.isLoadingMore || state.lastDoc == null) return;
     if (state.activeCategory == null) return;

@@ -32,14 +32,16 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _compareCtrl = TextEditingController();
-  final _stockCtrl = TextEditingController(text: '1');
+  final _stockCtrl = TextEditingController(text: '100');
   final _tagsCtrl = TextEditingController();
 
-  String? _categoryId;
-  String? _subcategoryId;
+  // Listas para guardar las selecciones múltiples
+  final Set<String> _selectedCategoryIds = {};
+  final Set<String> _selectedSubcategoryIds = {};
+  final Set<String> _featuredInCategories = {};
+
   bool _isActive = true;
   bool _isFeaturedGeneral = false;
-  final Set<String> _featuredInCategories = {};
   final List<String> _images = [];
 
   bool _loading = true;
@@ -76,9 +78,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
 
     if (_isEditing) {
       try {
-        final p = await ref
-            .read(firestoreServiceProvider)
-            .findProductById(widget.productId!);
+        final p = await ref.read(firestoreServiceProvider).findProductById(widget.productId!);
         if (p != null) {
           _titleCtrl.text = p.title;
           _descCtrl.text = p.description;
@@ -86,8 +86,14 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
           _compareCtrl.text = p.compareAtPrice?.toString() ?? '';
           _stockCtrl.text = p.stock.toString();
           _tagsCtrl.text = p.tags.join(', ');
-          _categoryId = p.categoryId;
-          _subcategoryId = p.subcategoryId;
+          
+          _selectedCategoryIds
+            ..clear()
+            ..addAll(p.categoryIds);
+          _selectedSubcategoryIds
+            ..clear()
+            ..addAll(p.subcategoryIds);
+          
           _isActive = p.isActive;
           _isFeaturedGeneral = p.isFeaturedGeneral;
           _featuredInCategories
@@ -115,8 +121,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         ),
       );
     }
-
-    final subs = _getSubcategories(categories);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -147,9 +151,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               decoration: const InputDecoration(
                 hintText: 'Ej: Club de Nuit Intense Man 105ml',
               ),
-              validator: (v) => (v == null || v.trim().length < 3)
-                  ? 'Ingresá un título válido'
-                  : null,
+              validator: (v) => (v == null || v.trim().length < 3) ? 'Ingresá un título válido' : null,
             ),
             const SizedBox(height: 16),
 
@@ -218,7 +220,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                         controller: _stockCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        decoration: const InputDecoration(hintText: '10'),
+                        decoration: const InputDecoration(hintText: '100'),
                       ),
                     ],
                   ),
@@ -240,74 +242,77 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // ── Categoría + Subcategoría ───────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label(context, 'Categoría'),
-                      DropdownButtonFormField<String>(
-                        value: _categoryId,
-                        isExpanded: true,
-                        items: categories
-                            .map((c) => DropdownMenuItem(
-                                  value: c.id,
-                                  child: Text(c.name),
-                                ))
-                            .toList(),
-                        onChanged: (v) => setState(() {
-                          _categoryId = v;
-                          _subcategoryId = null;
-                          // Limpiamos destacados de categorías que ya no aplican
-                          _featuredInCategories.removeWhere(
-                            (slug) => !categories.any(
-                              (c) => c.slug == slug && c.id == v,
-                            ),
-                          );
-                        }),
-                        validator: (v) =>
-                            v == null ? 'Seleccioná una categoría' : null,
-                        decoration: const InputDecoration(
-                          hintText: 'Seleccionar',
+            // ── CATEGORÍAS Y SUBCATEGORÍAS (CHECKBOXES) ──
+            _label(context, 'Categorías y Subcategorías'),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  for (final cat in categories) ...[
+                    CheckboxListTile(
+                      title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      value: _selectedCategoryIds.contains(cat.id),
+                      onChanged: (v) {
+                        setState(() {
+                          if (v == true) {
+                            _selectedCategoryIds.add(cat.id);
+                          } else {
+                            _selectedCategoryIds.remove(cat.id);
+                            // Si desmarca la categoría, desmarcamos sus subcategorías
+                            for (final sub in cat.subcategories) {
+                              _selectedSubcategoryIds.remove(sub.id);
+                              _featuredInCategories.remove(sub.slug);
+                            }
+                            _featuredInCategories.remove(cat.slug);
+                          }
+                        });
+                      },
+                      activeColor: AppColors.primary,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    ),
+                    // Si la categoría está seleccionada, mostramos sus subcategorías
+                    if (_selectedCategoryIds.contains(cat.id))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 32, bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final sub in cat.subcategories)
+                              CheckboxListTile(
+                                title: Text(sub.name, style: const TextStyle(fontSize: 13)),
+                                value: _selectedSubcategoryIds.contains(sub.id),
+                                onChanged: (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selectedSubcategoryIds.add(sub.id);
+                                    } else {
+                                      _selectedSubcategoryIds.remove(sub.id);
+                                    }
+                                  });
+                                },
+                                activeColor: AppColors.primary,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label(context, 'Subcategoría'),
-                      DropdownButtonFormField<String>(
-                        value: _subcategoryId,
-                        isExpanded: true,
-                        items: subs
-                            .map((s) => DropdownMenuItem(
-                                  value: s.id,
-                                  child: Text(s.name),
-                                ))
-                            .toList(),
-                        onChanged: _categoryId == null
-                            ? null
-                            : (v) => setState(() => _subcategoryId = v),
-                        decoration: const InputDecoration(
-                          hintText: 'Opcional',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
             // ── Toggles ────────────────────────────────────
+            _label(context, 'Visibilidad y Destacados'),
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -322,33 +327,20 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    title: const Text('Destacar en home general'),
+                    subtitle: const Text('Aparece en la portada principal (/)'),
+                    value: _isFeaturedGeneral,
+                    onChanged: (v) => setState(() => _isFeaturedGeneral = v),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // ── Destacar en home general ──────────────────
-            _label(context, 'Destacar producto'),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: SwitchListTile(
-                title: const Text('Destacar en home general'),
-                subtitle: const Text(
-                  'Aparece en la portada de la tienda (máx 10)',
-                ),
-                value: _isFeaturedGeneral,
-                onChanged: (v) =>
-                    setState(() => _isFeaturedGeneral = v),
-              ),
-            ),
-            const SizedBox(height: 12),
 
             // ── Destacar en tiendas específicas ──────────
-            if (categories.isNotEmpty)
+            if (_selectedCategoryIds.isNotEmpty) ...[
+              const SizedBox(height: 16),
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -362,21 +354,10 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                       child: Text(
                         'Destacar en tiendas específicas',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text(
-                        'Aparece en la portada de cada nicho (máx 10 por nicho)',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textMuted,
-                            ),
-                      ),
-                    ),
-                    for (final cat in categories)
+                    for (final cat in categories.where((c) => _selectedCategoryIds.contains(c.id)))
                       CheckboxListTile(
                         value: _featuredInCategories.contains(cat.slug),
                         onChanged: (v) {
@@ -397,6 +378,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                   ],
                 ),
               ),
+            ],
 
             const SizedBox(height: 28),
 
@@ -408,8 +390,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.check_rounded),
                 label: Text(_saving ? 'Guardando...' : 'Guardar producto'),
@@ -420,14 +401,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         ),
       ),
     );
-  }
-
-  List<Subcategory> _getSubcategories(List<Category> categories) {
-    if (_categoryId == null) return [];
-    for (final c in categories) {
-      if (c.id == _categoryId) return c.subcategories;
-    }
-    return [];
   }
 
   Widget _buildImagesRow() {
@@ -465,10 +438,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   TextStyle? _labelStyle(BuildContext context) => Theme.of(context)
       .textTheme
       .labelMedium
-      ?.copyWith(
-        color: AppColors.textSecondary,
-        fontWeight: FontWeight.w600,
-      );
+      ?.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600);
 
   Widget _label(BuildContext context, String text) {
     return Padding(
@@ -490,8 +460,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
       setState(() => _uploadingImage = true);
 
       final cloudinary = ref.read(cloudinaryServiceProvider);
-      final pid = widget.productId ??
-          'temp_${DateTime.now().millisecondsSinceEpoch}';
+      final pid = widget.productId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
       for (final f in files) {
         if (_images.length >= 6) break;
@@ -509,10 +478,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
       if (mounted) {
         setState(() => _uploadingImage = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al subir imagen: $e'),
-            backgroundColor: AppColors.danger,
-          ),
+          SnackBar(content: Text('Error al subir imagen: $e'), backgroundColor: AppColors.danger),
         );
       }
     }
@@ -520,6 +486,13 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedCategoryIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debés seleccionar al menos una categoría'), backgroundColor: AppColors.danger),
+      );
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -536,8 +509,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         description: _descCtrl.text.trim(),
         price: int.tryParse(_priceCtrl.text) ?? 0,
         compareAtPrice: int.tryParse(_compareCtrl.text),
-        categoryId: _categoryId!,
-        subcategoryId: _subcategoryId,
+        categoryIds: _selectedCategoryIds.toList(),
+        subcategoryIds: _selectedSubcategoryIds.toList(),
         images: _images,
         stock: int.tryParse(_stockCtrl.text) ?? 0,
         isActive: _isActive,
@@ -546,9 +519,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         tags: tags,
       );
 
-      final ok = await ref
-          .read(adminProductsControllerProvider.notifier)
-          .saveProduct(product);
+      final ok = await ref.read(adminProductsControllerProvider.notifier).saveProduct(product);
 
       if (!mounted) return;
 
@@ -564,19 +535,13 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
       } else {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo guardar'),
-            backgroundColor: AppColors.danger,
-          ),
+          const SnackBar(content: Text('No se pudo guardar'), backgroundColor: AppColors.danger),
         );
       }
     } catch (e) {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppColors.danger,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.danger),
       );
     }
   }
@@ -602,8 +567,7 @@ class _ImageThumb extends StatelessWidget {
               width: 100,
               height: 100,
               color: AppColors.surfaceAlt,
-              child: const Icon(Icons.broken_image_outlined,
-                  color: AppColors.textMuted),
+              child: const Icon(Icons.broken_image_outlined, color: AppColors.textMuted),
             ),
           ),
         ),
@@ -615,12 +579,8 @@ class _ImageThumb extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: AppColors.danger,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close_rounded,
-                  size: 12, color: Colors.white),
+              decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
+              child: const Icon(Icons.close_rounded, size: 12, color: Colors.white),
             ),
           ),
         ),
@@ -652,23 +612,17 @@ class _AddImageButton extends StatelessWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               )
             : const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_photo_alternate_outlined,
-                      color: AppColors.primary),
+                  Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
                   SizedBox(height: 4),
                   Text(
                     'Agregar',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
