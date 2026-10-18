@@ -37,13 +37,6 @@ class ProductGrid extends ConsumerWidget {
   final void Function(SortOption) onSortChanged;
   final bool showSortButton;
 
-  int _columns(double width) {
-    if (width < 600) return 2;
-    if (width < 1024) return 3;
-    if (width < 1440) return 4;
-    return 5;
-  }
-
   List<Product> _sorted(List<Product> source) {
     final list = [...source];
     switch (sortOption) {
@@ -66,22 +59,20 @@ class ProductGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.sizeOf(context).width;
-    final cols = _columns(width);
-
     if (isLoading && products.isEmpty) {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
+          // EL NUEVO DELEGADO MÁGICO
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 250, // Cada tarjeta medirá máximo 250px de ancho
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: 0.68,
           ),
           delegate: SliverChildBuilderDelegate(
             (_, __) => const ProductCardShimmer(),
-            childCount: cols * 2,
+            childCount: 10,
           ),
         ),
       );
@@ -116,8 +107,9 @@ class ProductGrid extends ConsumerWidget {
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cols,
+            // EL NUEVO DELEGADO MÁGICO
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 250,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: 0.68,

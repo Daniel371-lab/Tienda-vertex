@@ -158,7 +158,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final cartCount = ref.watch(cartCountProvider);
     final state = ref.watch(storeControllerProvider);
 
-    // LA LUPA SOLO APARECE EN EXPLORE O SUBCATEGORY
     final canSearch = state.showSearchAndFilters;
 
     return Scaffold(
@@ -191,117 +190,123 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     exploreCategorySlug: widget.exploreCategorySlug,
                   );
                 },
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    SliverAppBar(
-                      pinned: true,
-                      floating: false,
-                      elevation: 0,
-                      scrolledUnderElevation: 0,
-                      automaticallyImplyLeading: false,
-                      expandedHeight: 64,
-                      toolbarHeight: 64,
-                      backgroundColor: Colors.transparent,
-                      flexibleSpace: GlassHeader(
-                        cartCount: cartCount,
-                        onMenuTap: _openDrawer,
-                        onLogoTap: _goToHome,
-                        onCartTap: _openCart,
-                        onSearchTap: _toggleSearch,
-                        showSearch: canSearch,
-                      ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      slivers: [
+                        SliverAppBar(
+                          pinned: true,
+                          floating: false,
+                          elevation: 0,
+                          scrolledUnderElevation: 0,
+                          automaticallyImplyLeading: false,
+                          expandedHeight: 64,
+                          toolbarHeight: 64,
+                          backgroundColor: Colors.transparent,
+                          flexibleSpace: GlassHeader(
+                            cartCount: cartCount,
+                            onMenuTap: _openDrawer,
+                            onLogoTap: _goToHome,
+                            onCartTap: _openCart,
+                            onSearchTap: _toggleSearch,
+                            showSearch: canSearch,
+                          ),
+                        ),
+
+                        if (_searchActive)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                              child: TextField(
+                                controller: _searchController,
+                                autofocus: true,
+                                textInputAction: TextInputAction.search,
+                                onSubmitted: _executeSearch,
+                                decoration: InputDecoration(
+                                  hintText: 'Escribe y toca Enter para buscar...',
+                                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 18),
+                                    onPressed: _toggleSearch,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        if (_titleFor(state).isNotEmpty && !_searchActive)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                              child: Text(
+                                _titleFor(state),
+                                style: Theme.of(context).textTheme.headlineMedium,
+                              ),
+                            ),
+                          ),
+
+                        if (state.mode == HomeMode.explore && !_searchActive)
+                          const SliverToBoxAdapter(child: SubcategoryChips()),
+
+                        if (state.isLoadingProducts && state.products.isEmpty)
+                          ProductGrid(
+                            products: const [],
+                            isLoading: true,
+                            sortOption: SortOption.recent,
+                            onSortChanged: (_) {},
+                            showSortButton: false,
+                            onTap: (_) {},
+                            onAddToCart: (_) {},
+                          )
+                        else if (state.products.isEmpty && !state.isLoadingProducts)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _EmptyState(
+                              isSearch: state.isSearching,
+                              onRetry: () => ref
+                                  .read(storeControllerProvider.notifier)
+                                  .applyMode(
+                                    mode: widget.mode,
+                                    categorySlug: widget.categorySlug,
+                                    subcategorySlug: widget.subcategorySlug,
+                                    exploreCategorySlug: widget.exploreCategorySlug,
+                                  ),
+                            ),
+                          )
+                        else
+                          ProductGrid(
+                            products: state.visibleProducts,
+                            isLoading: false,
+                            sortOption: ref.watch(sortOptionProvider),
+                            showSortButton: state.showSearchAndFilters && !state.isSearching,
+                            onSortChanged: (option) {
+                              ref.read(sortOptionProvider.notifier).state = option;
+                            },
+                            // FIX: Cambiamos go() por push() para que el botón de atrás funcione
+                            onTap: (p) => context.push('/producto/${p.id}'),
+                            onAddToCart: _addToCart,
+                          ),
+
+                        if (state.isLoadingMore && !state.isSearching)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        const SliverToBoxAdapter(child: StoreFooter()),
+                      ],
                     ),
-
-                    if (_searchActive)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: TextField(
-                            controller: _searchController,
-                            autofocus: true,
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: _executeSearch,
-                            decoration: InputDecoration(
-                              hintText: 'Escribe y toca Enter para buscar...',
-                              prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 18),
-                                onPressed: _toggleSearch,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (_titleFor(state).isNotEmpty && !_searchActive)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                          child: Text(
-                            _titleFor(state),
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ),
-                      ),
-
-                    if (state.mode == HomeMode.explore && !_searchActive)
-                      const SliverToBoxAdapter(child: SubcategoryChips()),
-
-                    if (state.isLoadingProducts && state.products.isEmpty)
-                      ProductGrid(
-                        products: const [],
-                        isLoading: true,
-                        sortOption: SortOption.recent,
-                        onSortChanged: (_) {},
-                        showSortButton: false,
-                        onTap: (_) {},
-                        onAddToCart: (_) {},
-                      )
-                    else if (state.products.isEmpty && !state.isLoadingProducts)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _EmptyState(
-                          isSearch: state.isSearching,
-                          onRetry: () => ref
-                              .read(storeControllerProvider.notifier)
-                              .applyMode(
-                                mode: widget.mode,
-                                categorySlug: widget.categorySlug,
-                                subcategorySlug: widget.subcategorySlug,
-                                exploreCategorySlug: widget.exploreCategorySlug,
-                              ),
-                        ),
-                      )
-                    else
-                      ProductGrid(
-                        products: state.visibleProducts,
-                        isLoading: false,
-                        sortOption: ref.watch(sortOptionProvider),
-                        showSortButton: state.showSearchAndFilters && !state.isSearching,
-                        onSortChanged: (option) {
-                          ref.read(sortOptionProvider.notifier).state = option;
-                        },
-                        onTap: (p) => context.go('/producto/${p.id}'),
-                        onAddToCart: _addToCart,
-                      ),
-
-                    if (state.isLoadingMore && !state.isSearching)
-                      const SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(child: StoreFooter()),
-                  ],
+                  ),
                 ),
               ),
             ),

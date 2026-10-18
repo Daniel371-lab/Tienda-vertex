@@ -108,7 +108,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
               return const _DetailError();
             }
             
-            // Inicia el autoplay si hay más de 1 imagen
             if (_autoplayTimer == null || !_autoplayTimer!.isActive) {
               _startAutoplay(product.images.length);
             }
@@ -127,11 +126,10 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Galería ─────────────────────────────────────
         AspectRatio(
           aspectRatio: 1,
           child: Listener(
-            onPointerDown: (_) => _stopAutoplay(), // Detiene el autoplay si el cliente toca
+            onPointerDown: (_) => _stopAutoplay(),
             child: Stack(
               children: [
                 PageView.builder(
@@ -161,7 +159,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
                     );
                   },
                 ),
-                // Indicadores (puntitos)
                 if (product.images.length > 1)
                   Positioned(
                     bottom: 12,
@@ -200,7 +197,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
           ),
         ),
 
-        // ── Info ────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -269,7 +265,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
               ),
               const SizedBox(height: 32),
               
-              // Selector de cantidad
               Row(
                 children: [
                   Text('Cantidad:', style: Theme.of(context).textTheme.titleMedium),
@@ -302,7 +297,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
               
               const SizedBox(height: 24),
 
-              // BOTONES
               Row(
                 children: [
                   SizedBox(
@@ -346,7 +340,15 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () => context.pop(),
+                  // FIX: Como ahora entramos con push(), el pop() siempre funciona.
+                  // El else es solo por si el cliente recargó la página (F5) y perdió el historial.
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/');
+                    }
+                  },
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
                 const Spacer(),
