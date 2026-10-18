@@ -40,7 +40,9 @@ class AnalyticsService {
           'item_id': product.id,
           'item_name': product.title,
           'price': product.price,
-          'category': product.categoryId,
+          // CORREGIDO: categoryIds ahora es una lista
+          'category':
+              product.categoryIds.isNotEmpty ? product.categoryIds.first : '',
         },
       );
 

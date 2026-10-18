@@ -46,7 +46,9 @@ class CartItem {
         price: product.price,
         quantity: quantity,
         imageUrl: product.mainImage,
-        categoryId: product.categoryId,
+        // CORREGIDO: categoryIds ahora es una lista
+        categoryId:
+            product.categoryIds.isNotEmpty ? product.categoryIds.first : null,
       );
 
   Map<String, dynamic> toJson() => {

@@ -48,9 +48,12 @@ class StoreState {
   bool get showSubcategoriesInDrawer =>
       mode == HomeMode.specialized || mode == HomeMode.subcategory;
 
+  // CORREGIDO: ahora subcategoryIds es una lista
   List<Product> get visibleProducts {
     if (selectedSubcategoryId == null) return products;
-    return products.where((p) => p.subcategoryId == selectedSubcategoryId).toList();
+    return products
+        .where((p) => p.subcategoryIds.contains(selectedSubcategoryId))
+        .toList();
   }
 
   bool get hasProducts => visibleProducts.isNotEmpty;
@@ -66,6 +69,7 @@ class StoreState {
     bool clearActiveCategory = false,
     bool clearActiveSubcategory = false,
     DocumentSnapshot? lastDoc,
+    bool clearLastDoc = false,
     bool? hasMore,
     bool? isLoadingCategories,
     bool? isLoadingProducts,
@@ -79,11 +83,15 @@ class StoreState {
       mode: mode ?? this.mode,
       categories: categories ?? this.categories,
       products: products ?? this.products,
-      activeCategory: clearActiveCategory ? null : (activeCategory ?? this.activeCategory),
-      activeSubcategory: clearActiveSubcategory ? null : (activeSubcategory ?? this.activeSubcategory),
-      selectedSubcategoryId:
-          clearSelectedSubcategory ? null : (selectedSubcategoryId ?? this.selectedSubcategoryId),
-      lastDoc: lastDoc ?? this.lastDoc,
+      activeCategory:
+          clearActiveCategory ? null : (activeCategory ?? this.activeCategory),
+      activeSubcategory: clearActiveSubcategory
+          ? null
+          : (activeSubcategory ?? this.activeSubcategory),
+      selectedSubcategoryId: clearSelectedSubcategory
+          ? null
+          : (selectedSubcategoryId ?? this.selectedSubcategoryId),
+      lastDoc: clearLastDoc ? null : (lastDoc ?? this.lastDoc),
       hasMore: hasMore ?? this.hasMore,
       isLoadingCategories: isLoadingCategories ?? this.isLoadingCategories,
       isLoadingProducts: isLoadingProducts ?? this.isLoadingProducts,
@@ -106,6 +114,15 @@ class StoreController extends StateNotifier<StoreState> {
   final FirestoreService _fs;
   final AnalyticsService _analytics;
 
+  // NUEVO: lo usan home_view, smart_drawer y subcategory_chips
+  void selectSubcategory(String? id) {
+    if (id == null) {
+      state = state.copyWith(clearSelectedSubcategory: true);
+    } else {
+      state = state.copyWith(selectedSubcategoryId: id);
+    }
+  }
+
   Future<void> loadCategories() async {
     if (state.categories.isNotEmpty || state.isLoadingCategories) return;
     state = state.copyWith(isLoadingCategories: true, clearError: true);
@@ -116,7 +133,10 @@ class StoreController extends StateNotifier<StoreState> {
       }
       state = state.copyWith(categories: cats, isLoadingCategories: false);
     } catch (e) {
-      state = state.copyWith(isLoadingCategories: false, error: 'No pudimos cargar las categorías.');
+      state = state.copyWith(
+        isLoadingCategories: false,
+        error: 'No pudimos cargar las categorías.',
+      );
     }
   }
 
@@ -129,7 +149,7 @@ class StoreController extends StateNotifier<StoreState> {
     state = state.copyWith(
       mode: mode,
       products: const [],
-      lastDoc: null,
+      clearLastDoc: true,
       hasMore: false,
       isLoadingProducts: true,
       isSearching: false,
@@ -155,8 +175,12 @@ class StoreController extends StateNotifier<StoreState> {
 
   Future<void> search(String query) async {
     if (query.trim().isEmpty) {
-      state = state.copyWith(isSearching: false, searchQuery: '', products: const []);
-      applyMode(mode: state.mode, categorySlug: state.activeCategory?.slug);
+      state = state.copyWith(
+        isSearching: false,
+        searchQuery: '',
+        products: const [],
+      );
+      await applyMode(mode: state.mode, categorySlug: state.activeCategory?.slug);
       return;
     }
 
@@ -181,40 +205,70 @@ class StoreController extends StateNotifier<StoreState> {
     applyMode(
       mode: state.mode,
       categorySlug: state.activeCategory?.slug,
-      exploreCategorySlug: state.mode == HomeMode.explore ? state.activeCategory?.slug : null,
+      exploreCategorySlug:
+          state.mode == HomeMode.explore ? state.activeCategory?.slug : null,
     );
   }
 
   Future<void> _loadGeneral() async {
-    state = state.copyWith(clearActiveCategory: true, clearActiveSubcategory: true);
+    state = state.copyWith(
+      clearActiveCategory: true,
+      clearActiveSubcategory: true,
+      clearSelectedSubcategory: true,
+    );
     try {
       final products = await _fs.fetchFeaturedGeneral(limit: 10);
       state = state.copyWith(products: products, isLoadingProducts: false);
       await _analytics.logHomeViewed();
     } catch (e) {
-      state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+      state = state.copyWith(
+        isLoadingProducts: false,
+        error: 'No pudimos cargar los productos.',
+      );
     }
   }
 
   Future<void> _loadExplore(String? categorySlug, String? subcategorySlug) async {
-  if (categorySlug == null) { await _loadGeneral(); return; }
-  final category = await _resolveCategory(categorySlug);
-  if (category == null) { await _loadGeneral(); return; }
-  
-  Subcategory? sub;
-  if (subcategorySlug != null) {
-    try { sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug); } catch (_) { sub = null; }
-  }
+    if (categorySlug == null) {
+      await _loadGeneral();
+      return;
+    }
+    final category = await _resolveCategory(categorySlug);
+    if (category == null) {
+      await _loadGeneral();
+      return;
+    }
 
-  state = state.copyWith(activeCategory: category, activeSubcategory: sub, selectedSubcategoryId: sub?.id);
+    Subcategory? sub;
+    if (subcategorySlug != null) {
+      try {
+        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
+      } catch (_) {
+        sub = null;
+      }
+    }
 
-  try {
-    final page = await _fs.fetchAllByCategory(categoryId: category.id); // Usa arrayContains internamente
-    state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
-  } catch (e) {
-    state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+    state = state.copyWith(
+      activeCategory: category,
+      activeSubcategory: sub,
+      selectedSubcategoryId: sub?.id,
+    );
+
+    try {
+      final page = await _fs.fetchAllByCategory(categoryId: category.id);
+      state = state.copyWith(
+        products: page.products,
+        lastDoc: page.lastDoc,
+        hasMore: page.hasMore,
+        isLoadingProducts: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingProducts: false,
+        error: 'No pudimos cargar los productos.',
+      );
+    }
   }
-}
 
   Future<void> _loadSpecialized(String? categorySlug) async {
     if (categorySlug == null) {
@@ -232,44 +286,88 @@ class StoreController extends StateNotifier<StoreState> {
       clearSelectedSubcategory: true,
     );
     try {
-      final products = await _fs.fetchFeaturedByCategory(categoryId: category.id, limit: 10);
+      final products =
+          await _fs.fetchFeaturedByCategory(categoryId: category.id, limit: 10);
       state = state.copyWith(products: products, isLoadingProducts: false);
     } catch (e) {
-      state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+      state = state.copyWith(
+        isLoadingProducts: false,
+        error: 'No pudimos cargar los productos.',
+      );
     }
   }
 
   Future<void> _loadSubcategory(String? categorySlug, String? subcategorySlug) async {
-    if (categorySlug == null) { await _loadGeneral(); return; }
+    if (categorySlug == null) {
+      await _loadGeneral();
+      return;
+    }
     final category = await _resolveCategory(categorySlug);
-    if (category == null) { await _loadGeneral(); return; }
+    if (category == null) {
+      await _loadGeneral();
+      return;
+    }
 
     if (subcategorySlug == 'todos') {
-      state = state.copyWith(activeCategory: category, clearActiveSubcategory: true, clearSelectedSubcategory: true);
+      state = state.copyWith(
+        activeCategory: category,
+        clearActiveSubcategory: true,
+        clearSelectedSubcategory: true,
+      );
       try {
         final page = await _fs.fetchAllByCategory(categoryId: category.id);
-        state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
+        state = state.copyWith(
+          products: page.products,
+          lastDoc: page.lastDoc,
+          hasMore: page.hasMore,
+          isLoadingProducts: false,
+        );
       } catch (e) {
-        state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+        state = state.copyWith(
+          isLoadingProducts: false,
+          error: 'No pudimos cargar los productos.',
+        );
       }
       return;
     }
 
     Subcategory? sub;
     if (subcategorySlug != null) {
-      try { sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug); } catch (_) { sub = null; }
+      try {
+        sub = category.subcategories.firstWhere((s) => s.slug == subcategorySlug);
+      } catch (_) {
+        sub = null;
+      }
     }
-    state = state.copyWith(activeCategory: category, activeSubcategory: sub, selectedSubcategoryId: sub?.id);
+    state = state.copyWith(
+      activeCategory: category,
+      activeSubcategory: sub,
+      selectedSubcategoryId: sub?.id,
+    );
     try {
-      final page = await _fs.fetchAllBySubcategory(categoryId: category.id, subcategoryId: sub?.id ?? '');
-      state = state.copyWith(products: page.products, lastDoc: page.lastDoc, hasMore: page.hasMore, isLoadingProducts: false);
+      final page = await _fs.fetchAllBySubcategory(
+        categoryId: category.id,
+        subcategoryId: sub?.id ?? '',
+      );
+      state = state.copyWith(
+        products: page.products,
+        lastDoc: page.lastDoc,
+        hasMore: page.hasMore,
+        isLoadingProducts: false,
+      );
     } catch (e) {
-      state = state.copyWith(isLoadingProducts: false, error: 'No pudimos cargar los productos.');
+      state = state.copyWith(
+        isLoadingProducts: false,
+        error: 'No pudimos cargar los productos.',
+      );
     }
   }
-  
+
   Future<void> loadMore() async {
-    if (state.isSearching || !state.hasMore || state.isLoadingMore || state.lastDoc == null) return;
+    if (state.isSearching ||
+        !state.hasMore ||
+        state.isLoadingMore ||
+        state.lastDoc == null) return;
     if (state.activeCategory == null) return;
 
     state = state.copyWith(isLoadingMore: true);

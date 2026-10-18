@@ -27,7 +27,10 @@ class AdminProductsState {
   List<Product> get filteredProducts {
     var list = products;
     if (selectedCategoryId != null) {
-      list = list.where((p) => p.categoryId == selectedCategoryId).toList();
+      // CORREGIDO: categoryIds ahora es una lista
+      list = list
+          .where((p) => p.categoryIds.contains(selectedCategoryId))
+          .toList();
     }
     if (showOnlyActive) {
       list = list.where((p) => p.isActive).toList();
