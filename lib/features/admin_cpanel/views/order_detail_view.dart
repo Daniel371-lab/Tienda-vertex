@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:printing/printing.dart'; // <-- Paquete para imprimir/compartir
+import 'package:pdf/pdf.dart'; // <-- IMPORTACIÓN QUE FALTABA
+import 'package:printing/printing.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -11,7 +12,7 @@ import '../../../core/utils/phone_validator.dart';
 import '../../../models/order_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../controllers/admin_orders_controller.dart';
-import '../utils/pdf_generator.dart'; // <-- Nuestro generador
+import '../utils/pdf_generator.dart';
 import '../widgets/order_status_badge.dart';
 
 class OrderDetailView extends ConsumerStatefulWidget {
@@ -25,7 +26,7 @@ class OrderDetailView extends ConsumerStatefulWidget {
 class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   Order? _order;
   bool _loading = true;
-  bool _generatingPdf = false; // Estado para el botón de PDF
+  bool _generatingPdf = false;
   String? _error;
 
   @override
@@ -36,7 +37,9 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
   Future<void> _load() async {
     try {
-      final o = await ref.read(firestoreServiceProvider).findOrderById(widget.orderId);
+      final o = await ref
+          .read(firestoreServiceProvider)
+          .findOrderById(widget.orderId);
       if (!mounted) return;
       setState(() {
         _order = o;
@@ -54,12 +57,10 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   Future<void> _printReceipt(Order o) async {
     setState(() => _generatingPdf = true);
     try {
-      // Generamos el PDF
       final pdfBytes = await PdfGenerator.generateReceipt(o);
       
       if (!mounted) return;
       
-      // Abrimos la pantalla de impresión nativa (que también permite compartir por WhatsApp)
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdfBytes,
         name: 'Comprobante_${o.shortId}.pdf',
@@ -204,7 +205,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
             const SizedBox(height: 30),
 
-            // ── BOTONES SOLO ÍCONOS ──
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -237,8 +237,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
       ),
     );
   }
-
-  // [El resto de los métodos _changeStatus, _showCostDialog, _contactViaWhatsapp y _confirmDelete se mantienen exactamente igual que en el código anterior]
 
   Future<void> _changeStatus(OrderStatus newStatus) async {
     final o = _order;
@@ -369,7 +367,6 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
   }
 }
 
-// ── NUEVO WIDGET PARA BOTONES DE ÍCONO ──
 class _IconActionButton extends StatelessWidget {
   const _IconActionButton({
     required this.icon,
@@ -417,7 +414,6 @@ class _IconActionButton extends StatelessWidget {
   }
 }
 
-// [Los sub-widgets _StatusActions, _Section, _Field, _OrderItemRow, _SummaryRow y _TimelineRow se mantienen exactamente igual]
 class _StatusActions extends StatelessWidget {
   const _StatusActions({required this.order, required this.onChangeStatus, required this.onCancel});
   final Order order;
