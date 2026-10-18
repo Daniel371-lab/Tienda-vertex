@@ -45,22 +45,25 @@ class FirestoreService {
 
   // ── PRODUCTOS ─────────────────────────────────────────────────
 
-  /// TODOS los productos activos (para búsqueda general).
-  Future<List<Product>> fetchAllActiveProducts() async {
+  /// Busca productos en Firebase usando el campo searchTitle.
+  /// Gasta lecturas solo de los productos que coinciden con la búsqueda.
+  Future<List<Product>> searchProducts(String query) async {
+    if (query.trim().isEmpty) return [];
+    
+    final cleanQuery = Product.buildSearchTitle(query.trim());
+    
+    // Busca los que empiecen con la letra que escribió el cliente
     final snap = await _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
+        .where('searchTitle', isGreaterThanOrEqualTo: cleanQuery)
+        .where('searchTitle', isLessThan: '$cleanQuery\uf8ff')
+        .limit(pageSize)
         .get();
-    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
-    products.sort((a, b) {
-      final aD = a.createdAt ?? DateTime(1970);
-      final bD = b.createdAt ?? DateTime(1970);
-      return bD.compareTo(aD);
-    });
-    return products;
+        
+    return snap.docs.map((d) => Product.fromFirestore(d)).toList();
   }
 
-  /// 10 destacados del home general (`/`).
   Future<List<Product>> fetchFeaturedGeneral({int limit = 10}) async {
     final snap = await _db
         .collection(ApiConstants.colProducts)
@@ -77,7 +80,6 @@ class FirestoreService {
     return products;
   }
 
-  /// 10 destacados de una tienda especializada (`/perfumes`).
   Future<List<Product>> fetchFeaturedByCategory({
     required String categoryId,
     int limit = 10,
@@ -92,7 +94,6 @@ class FirestoreService {
     return snap.docs.map((d) => Product.fromFirestore(d)).toList();
   }
 
-  /// Todos los productos de una categoría (`/?cat=perfumes`).
   Future<ProductsPage> fetchAllByCategory({
     required String categoryId,
     DocumentSnapshot? startAfter,
@@ -119,7 +120,6 @@ class FirestoreService {
     );
   }
 
-  /// Todos los productos de una subcategoría (`/perfumes/arabes`).
   Future<ProductsPage> fetchAllBySubcategory({
     required String categoryId,
     required String subcategoryId,

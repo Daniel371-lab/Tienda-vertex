@@ -2,16 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/cloudinary_helper.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/badge_chip.dart';
 import '../../../../models/product_model.dart';
 
-/// Card minimalista de producto.
-///
-/// · Sin botón de agregar (toda la card es clickeable)
-/// · Imagen más panorámica (aspect 1.1) para no ocupar tanto espacio
-/// · Precios en columna: anterior tachado arriba, actual grande abajo
-/// · FittedBox para evitar overflow con precios largos
 class ProductCard extends StatefulWidget {
   const ProductCard({
     super.key,
@@ -77,7 +72,7 @@ class _ProductCardState extends State<ProductCard> {
                                   ),
                                 )
                               : CachedNetworkImage(
-                                  imageUrl: p.mainImage,
+                                  imageUrl: CloudinaryHelper.optimize(p.mainImage, width: 400),
                                   fit: BoxFit.cover,
                                   fadeInDuration:
                                       const Duration(milliseconds: 250),

@@ -40,7 +40,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
   final _searchController = TextEditingController();
 
   bool _searchActive = false;
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -66,11 +65,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
         oldWidget.categorySlug != widget.categorySlug ||
         oldWidget.subcategorySlug != widget.subcategorySlug ||
         oldWidget.exploreCategorySlug != widget.exploreCategorySlug) {
-      // Al cambiar de contexto, reseteamos el buscador
       _searchActive = false;
-      _searchQuery = '';
       _searchController.clear();
-
       ref.read(storeControllerProvider.notifier).applyMode(
             mode: widget.mode,
             categorySlug: widget.categorySlug,
@@ -105,10 +101,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
     setState(() {
       _searchActive = !_searchActive;
       if (!_searchActive) {
-        _searchQuery = '';
         _searchController.clear();
+        ref.read(storeControllerProvider.notifier).clearSearch();
       }
     });
+  }
+
+  void _executeSearch(String query) {
+    if (query.trim().isEmpty) return;
+    FocusScope.of(context).unfocus();
+    ref.read(storeControllerProvider.notifier).search(query);
   }
 
   void _openCart() {
@@ -149,17 +151,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
     await ref.read(analyticsServiceProvider).logAddToCart(product, 1);
   }
 
-  /// Filtra los productos visibles según la query de búsqueda.
-  List<Product> _applySearch(List<Product> products) {
-    if (_searchQuery.trim().isEmpty) return products;
-    final q = _searchQuery.toLowerCase().trim();
-    return products.where((p) {
-      return p.title.toLowerCase().contains(q) ||
-          p.description.toLowerCase().contains(q) ||
-          p.tags.any((t) => t.toLowerCase().contains(q));
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -167,7 +158,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
     final cartCount = ref.watch(cartCountProvider);
     final state = ref.watch(storeControllerProvider);
 
-    final filtered = _applySearch(state.visibleProducts);
+    // LA LUPA SOLO APARECE EN EXPLORE O SUBCATEGORY
+    final canSearch = state.showSearchAndFilters;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -217,11 +209,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onLogoTap: _goToHome,
                         onCartTap: _openCart,
                         onSearchTap: _toggleSearch,
-                        showSearch: isWide || state.showSearchAndFilters,
+                        showSearch: canSearch,
                       ),
                     ),
 
-                    // Campo de búsqueda inline
                     if (_searchActive)
                       SliverToBoxAdapter(
                         child: Padding(
@@ -229,9 +220,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           child: TextField(
                             controller: _searchController,
                             autofocus: true,
-                            onChanged: (v) => setState(() => _searchQuery = v),
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _executeSearch,
                             decoration: InputDecoration(
-                              hintText: 'Buscar productos...',
+                              hintText: 'Escribe y toca Enter para buscar...',
                               prefixIcon: const Icon(Icons.search_rounded, size: 20),
                               suffixIcon: IconButton(
                                 icon: const Icon(Icons.close_rounded, size: 18),
@@ -242,8 +234,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
 
-                    // Título
-                    if (_titleFor(state).isNotEmpty)
+                    if (_titleFor(state).isNotEmpty && !_searchActive)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -254,8 +245,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
 
-                    // Chips solo en modo explore (desde la general)
-                    if (state.mode == HomeMode.explore)
+                    if (state.mode == HomeMode.explore && !_searchActive)
                       const SliverToBoxAdapter(child: SubcategoryChips()),
 
                     if (state.isLoadingProducts && state.products.isEmpty)
@@ -268,11 +258,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onTap: (_) {},
                         onAddToCart: (_) {},
                       )
-                    else if (filtered.isEmpty && !state.isLoadingProducts)
+                    else if (state.products.isEmpty && !state.isLoadingProducts)
                       SliverFillRemaining(
                         hasScrollBody: false,
                         child: _EmptyState(
-                          isSearch: _searchQuery.trim().isNotEmpty,
+                          isSearch: state.isSearching,
                           onRetry: () => ref
                               .read(storeControllerProvider.notifier)
                               .applyMode(
@@ -285,10 +275,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       )
                     else
                       ProductGrid(
-                        products: filtered,
+                        products: state.visibleProducts,
                         isLoading: false,
                         sortOption: ref.watch(sortOptionProvider),
-                        showSortButton: state.showSearchAndFilters,
+                        showSortButton: state.showSearchAndFilters && !state.isSearching,
                         onSortChanged: (option) {
                           ref.read(sortOptionProvider.notifier).state = option;
                         },
@@ -296,7 +286,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onAddToCart: _addToCart,
                       ),
 
-                    if (state.isLoadingMore)
+                    if (state.isLoadingMore && !state.isSearching)
                       const SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.all(24),
@@ -324,11 +314,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
   String _titleFor(StoreState state) {
     if (state.mode == HomeMode.general) return '';
     if (state.mode == HomeMode.specialized) return '';
-
-    if (state.mode == HomeMode.explore) {
-      return state.activeCategory?.name ?? '';
-    }
-
+    if (state.mode == HomeMode.explore) return state.activeCategory?.name ?? '';
     if (state.mode == HomeMode.subcategory) {
       final catName = state.activeCategory?.name ?? '';
       if (state.activeSubcategory != null) {
@@ -336,7 +322,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
       }
       return catName;
     }
-
     return '';
   }
 
@@ -351,11 +336,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     }
 
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 }
@@ -383,20 +364,13 @@ class _EmptyState extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              isSearch
-                  ? 'Sin resultados para tu búsqueda'
-                  : (errorMsg ?? AppStrings.noProducts),
+              isSearch ? 'Sin resultados para tu búsqueda' : (errorMsg ?? AppStrings.noProducts),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             if (!isSearch) ...[
               const SizedBox(height: 12),
-              TextButton(
-                onPressed: onRetry,
-                child: const Text('Reintentar'),
-              ),
+              TextButton(onPressed: onRetry, child: const Text('Reintentar')),
             ],
           ],
         ),

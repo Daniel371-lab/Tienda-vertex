@@ -4,14 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/constants/app_strings.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/utils/cloudinary_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../client_store/controllers/cart_controller.dart';
 
 class CartDrawer extends ConsumerWidget {
   const CartDrawer({super.key, this.onCheckout});
 
-  /// Callback que se ejecuta al tocar "Finalizar compra".
-  /// El padre es quien cierra este modal y abre el checkout.
   final VoidCallback? onCheckout;
 
   @override
@@ -154,7 +153,7 @@ class _CartLine extends StatelessWidget {
             child: item.imageUrl.isEmpty
                 ? Container(color: AppColors.surfaceAlt)
                 : CachedNetworkImage(
-                    imageUrl: item.imageUrl,
+                    imageUrl: CloudinaryHelper.optimize(item.imageUrl, width: 200),
                     fit: BoxFit.cover,
                   ),
           ),
@@ -282,7 +281,7 @@ class _EmptyCart extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.shopping_bag_outlined,
+            Icon(Icons.shopping_bag_outlined,
                 size: 64, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(

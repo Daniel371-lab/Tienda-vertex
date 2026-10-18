@@ -29,24 +29,15 @@ class Product {
   final String? subcategoryId;
   final List<String> images;
   final int stock;
-
-  /// Marca legacy. Se mantiene por compatibilidad pero ya no se usa.
   final bool isFeatured;
-
-  /// Aparece en el home general (`/`).
   final bool isFeaturedGeneral;
-
-  /// Aparece destacado en estas tiendas especializadas (slugs).
-  /// Ej: `['perfumes']` o `['perfumes', 'joyeria']`.
   final List<String> isFeaturedInCategories;
-
   final bool isActive;
   final List<String> tags;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  bool get hasDiscount =>
-      compareAtPrice != null && compareAtPrice! > price;
+  bool get hasDiscount => compareAtPrice != null && compareAtPrice! > price;
 
   int get discountPercent {
     if (!hasDiscount) return 0;
@@ -54,6 +45,18 @@ class Product {
   }
 
   String get mainImage => images.isNotEmpty ? images.first : '';
+
+  /// Genera un texto limpio (minúsculas y sin tildes) para el buscador.
+  static String buildSearchTitle(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[áàäâ]'), 'a')
+        .replaceAll(RegExp(r'[éèëê]'), 'e')
+        .replaceAll(RegExp(r'[íìïî]'), 'i')
+        .replaceAll(RegExp(r'[óòöô]'), 'o')
+        .replaceAll(RegExp(r'[úùüû]'), 'u')
+        .replaceAll(RegExp(r'[ñ]'), 'n');
+  }
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -73,8 +76,7 @@ class Product {
         isFeatured: map['isFeatured'] as bool? ?? false,
         isFeaturedGeneral: map['isFeaturedGeneral'] as bool? ?? false,
         isFeaturedInCategories:
-            (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ??
-                const [],
+            (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ?? const [],
         isActive: map['isActive'] as bool? ?? true,
         tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
         createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
@@ -95,9 +97,8 @@ class Product {
         'isFeaturedInCategories': isFeaturedInCategories,
         'isActive': isActive,
         'tags': tags,
-        'createdAt': createdAt != null
-            ? Timestamp.fromDate(createdAt!)
-            : FieldValue.serverTimestamp(),
+        'searchTitle': buildSearchTitle(title), // <-- SE GENERA AUTOMÁTICAMENTE
+        'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -128,8 +129,7 @@ class Product {
         stock: stock ?? this.stock,
         isFeatured: isFeatured ?? this.isFeatured,
         isFeaturedGeneral: isFeaturedGeneral ?? this.isFeaturedGeneral,
-        isFeaturedInCategories:
-            isFeaturedInCategories ?? this.isFeaturedInCategories,
+        isFeaturedInCategories: isFeaturedInCategories ?? this.isFeaturedInCategories,
         isActive: isActive ?? this.isActive,
         tags: tags ?? this.tags,
         createdAt: createdAt,

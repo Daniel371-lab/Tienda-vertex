@@ -13,7 +13,15 @@ import 'firestore_service.dart';
 // ── Instancias Firebase ────────────────────────────────────────
 
 final firestoreInstanceProvider = Provider<FirebaseFirestore>(
-  (ref) => FirebaseFirestore.instance,
+  (ref) {
+    final db = FirebaseFirestore.instance;
+    // Activa el guardado en caché en el navegador/celular del cliente
+    db.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+    return db;
+  },
 );
 
 final authInstanceProvider = Provider<FirebaseAuth>(
