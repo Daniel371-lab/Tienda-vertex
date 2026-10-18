@@ -9,9 +9,6 @@ import '../../../core/utils/phone_validator.dart';
 import '../../../models/settings_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 
-/// Pantalla que se muestra después de crear un pedido.
-/// Indica al cliente los datos para transferir y la advertencia
-/// de que el pedido se procesa una vez acreditado el pago.
 class PaymentInfoView extends ConsumerWidget {
   const PaymentInfoView({
     super.key,
@@ -140,33 +137,29 @@ class PaymentInfoView extends ConsumerWidget {
                         border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _InfoRow(
+                          _CopyRow(
                             label: 'Titular',
                             value: settings.paymentHolderName,
                           ),
-                          const SizedBox(height: 10),
-                          _InfoRow(
+                          const SizedBox(height: 12),
+                          _CopyRow(
                             label: 'Banco',
                             value: settings.paymentBank,
                           ),
-                          const SizedBox(height: 10),
-                          _InfoRow(
-                            label: 'Cuenta',
+                          const SizedBox(height: 12),
+                          _CopyRow(
+                            label: 'Alias (CI)',
+                            value: settings.paymentAlias,
+                            icon: Icons.badge_outlined,
+                          ),
+                          const SizedBox(height: 12),
+                          _CopyRow(
+                            label: 'Nro. Cuenta',
                             value: settings.paymentAccount,
+                            icon: Icons.numbers_rounded,
                           ),
                         ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _copyPaymentData(context),
-                        icon: const Icon(Icons.copy_rounded, size: 18),
-                        label: const Text('Copiar datos'),
                       ),
                     ),
 
@@ -255,23 +248,6 @@ class PaymentInfoView extends ConsumerWidget {
     );
   }
 
-  void _copyPaymentData(BuildContext context) {
-    final text = 'Titular: ${settings.paymentHolderName}\n'
-        'Banco: ${settings.paymentBank}\n'
-        'Cuenta: ${settings.paymentAccount}\n'
-        'Monto: ${CurrencyFormatter.format(amount)}\n'
-        'Pedido: #$shortId';
-
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Datos copiados'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   Future<void> _sendReceipt(BuildContext context, WidgetRef ref) async {
     final normalized = PhoneValidator.toWhatsappFormat(settings.whatsappNumber);
     if (normalized.isEmpty) return;
@@ -290,15 +266,21 @@ class PaymentInfoView extends ConsumerWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+/// Fila de datos con botón de copiar individual.
+class _CopyRow extends StatelessWidget {
+  const _CopyRow({
+    required this.label,
+    required this.value,
+    this.icon,
+  });
+
   final String label;
   final String value;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 80,
@@ -315,8 +297,29 @@ class _InfoRow extends StatelessWidget {
             value.isEmpty ? '—' : value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
           ),
+        ),
+        IconButton(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: value));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$label copiado'),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 1),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          icon: Icon(
+            icon ?? Icons.copy_rounded,
+            size: 18,
+            color: AppColors.primary,
+          ),
+          tooltip: 'Copiar $label',
+          visualDensity: VisualDensity.compact,
         ),
       ],
     );

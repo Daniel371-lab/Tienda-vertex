@@ -24,6 +24,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   final _holderCtrl = TextEditingController();
   final _bankCtrl = TextEditingController();
   final _accountCtrl = TextEditingController();
+  final _aliasCtrl = TextEditingController();
   final _geminiCtrl = TextEditingController();
 
   bool _loading = true;
@@ -45,6 +46,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _holderCtrl.dispose();
     _bankCtrl.dispose();
     _accountCtrl.dispose();
+    _aliasCtrl.dispose();
     _geminiCtrl.dispose();
     super.dispose();
   }
@@ -59,6 +61,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       _holderCtrl.text = s.paymentHolderName;
       _bankCtrl.text = s.paymentBank;
       _accountCtrl.text = s.paymentAccount;
+      _aliasCtrl.text = s.paymentAlias;
       _geminiCtrl.text = s.geminiApiKey;
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -126,7 +129,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               controller: _shippingCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                hintText: 'Envíos a todo Paraguay.',
+                hintText: 'Envíos a todo el país.',
               ),
             ),
             const SizedBox(height: 28),
@@ -164,6 +167,18 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               decoration: const InputDecoration(
                 hintText: '0981 123 456',
                 prefixIcon: Icon(Icons.numbers_rounded, size: 20),
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 14),
+            _label(context, 'Alias (Cédula de Identidad)'),
+            TextFormField(
+              controller: _aliasCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Ej: 3456789',
+                prefixIcon: Icon(Icons.badge_outlined, size: 20),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Requerido' : null,
@@ -248,6 +263,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         paymentHolderName: _holderCtrl.text.trim(),
         paymentBank: _bankCtrl.text.trim(),
         paymentAccount: _accountCtrl.text.trim(),
+        paymentAlias: _aliasCtrl.text.trim(),
         geminiApiKey: _geminiCtrl.text.trim(),
       );
 

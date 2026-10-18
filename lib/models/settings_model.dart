@@ -11,6 +11,7 @@ class StoreSettings {
     this.paymentHolderName = '',
     this.paymentBank = '',
     this.paymentAccount = '',
+    this.paymentAlias = '', // NUEVO CAMPO
     this.geminiApiKey = '',
     this.updatedAt,
   });
@@ -24,10 +25,8 @@ class StoreSettings {
   final String paymentHolderName;
   final String paymentBank;
   final String paymentAccount;
-
-  /// API Key de Google Gemini para el importador OCR desde captura.
+  final String paymentAlias; // NUEVO CAMPO
   final String geminiApiKey;
-
   final DateTime? updatedAt;
 
   static const StoreSettings fallback = StoreSettings(
@@ -38,6 +37,7 @@ class StoreSettings {
     paymentHolderName: 'Titular pendiente',
     paymentBank: 'Banco pendiente',
     paymentAccount: 'Cuenta pendiente',
+    paymentAlias: 'Alias pendiente',
     geminiApiKey: '',
   );
 
@@ -62,6 +62,8 @@ class StoreSettings {
         paymentBank: map['paymentBank'] as String? ?? fallback.paymentBank,
         paymentAccount:
             map['paymentAccount'] as String? ?? fallback.paymentAccount,
+        paymentAlias:
+            map['paymentAlias'] as String? ?? fallback.paymentAlias, // NUEVO
         geminiApiKey: map['geminiApiKey'] as String? ?? '',
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       );
@@ -76,6 +78,7 @@ class StoreSettings {
         'paymentHolderName': paymentHolderName,
         'paymentBank': paymentBank,
         'paymentAccount': paymentAccount,
+        'paymentAlias': paymentAlias, // NUEVO
         'geminiApiKey': geminiApiKey,
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -90,6 +93,7 @@ class StoreSettings {
     String? paymentHolderName,
     String? paymentBank,
     String? paymentAccount,
+    String? paymentAlias, // NUEVO
     String? geminiApiKey,
   }) =>
       StoreSettings(
@@ -102,6 +106,7 @@ class StoreSettings {
         paymentHolderName: paymentHolderName ?? this.paymentHolderName,
         paymentBank: paymentBank ?? this.paymentBank,
         paymentAccount: paymentAccount ?? this.paymentAccount,
+        paymentAlias: paymentAlias ?? this.paymentAlias, // NUEVO
         geminiApiKey: geminiApiKey ?? this.geminiApiKey,
         updatedAt: updatedAt,
       );
