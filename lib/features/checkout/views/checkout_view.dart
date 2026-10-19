@@ -244,6 +244,7 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
                 price: it.price,
                 quantity: it.quantity,
                 imageUrl: it.imageUrl,
+                suggestedProvider: it.suggestedProvider, // <-- NUEVO AQUÍ
               )).toList();
 
       final order = Order(
@@ -280,7 +281,6 @@ class _CheckoutViewState extends ConsumerState<CheckoutView> {
 
       final settings = await fs.fetchSettings();
 
-      // FIX: Creamos un objeto Order nuevo en vez de usar copyWith(id)
       final finalOrder = Order(
         id: orderId,
         customerName: order.customerName,

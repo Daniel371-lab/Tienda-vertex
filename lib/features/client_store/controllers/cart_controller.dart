@@ -19,6 +19,7 @@ class CartItem {
     required this.quantity,
     required this.imageUrl,
     this.categoryId,
+    this.suggestedProvider, // <-- NUEVO
   });
 
   final String productId;
@@ -27,16 +28,23 @@ class CartItem {
   final int quantity;
   final String imageUrl;
   final String? categoryId;
+  final String? suggestedProvider; // <-- NUEVO
 
   int get lineTotal => price * quantity;
 
-  CartItem copyWith({int? quantity, int? price, String? imageUrl}) => CartItem(
+  CartItem copyWith({
+    int? quantity, 
+    int? price, 
+    String? imageUrl,
+    String? suggestedProvider, // <-- NUEVO
+  }) => CartItem(
         productId: productId,
         title: title,
         price: price ?? this.price,
         quantity: quantity ?? this.quantity,
         imageUrl: imageUrl ?? this.imageUrl,
         categoryId: categoryId,
+        suggestedProvider: suggestedProvider ?? this.suggestedProvider, // <-- NUEVO
       );
 
   factory CartItem.fromProduct(Product product, {int quantity = 1}) =>
@@ -49,6 +57,7 @@ class CartItem {
         // CORREGIDO: categoryIds ahora es una lista
         categoryId:
             product.categoryIds.isNotEmpty ? product.categoryIds.first : null,
+        suggestedProvider: product.suggestedProvider, // <-- NUEVO
       );
 
   Map<String, dynamic> toJson() => {
@@ -58,6 +67,7 @@ class CartItem {
         'quantity': quantity,
         'imageUrl': imageUrl,
         'categoryId': categoryId,
+        'suggestedProvider': suggestedProvider, // <-- NUEVO
       };
 
   factory CartItem.fromJson(Map<String, dynamic> map) => CartItem(
@@ -67,6 +77,7 @@ class CartItem {
         quantity: (map['quantity'] as num?)?.toInt() ?? 1,
         imageUrl: map['imageUrl'] as String? ?? '',
         categoryId: map['categoryId'] as String?,
+        suggestedProvider: map['suggestedProvider'] as String?, // <-- NUEVO
       );
 }
 
@@ -197,6 +208,7 @@ class CartController extends StateNotifier<CartState> {
           quantity: qty,
           price: product.price,
           imageUrl: product.mainImage,
+          suggestedProvider: product.suggestedProvider, // <-- NUEVO
         ),
       );
     }

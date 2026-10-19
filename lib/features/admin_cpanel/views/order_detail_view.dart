@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pdf/pdf.dart'; // <-- IMPORTACIÓN QUE FALTABA
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -37,9 +37,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
 
   Future<void> _load() async {
     try {
-      final o = await ref
-          .read(firestoreServiceProvider)
-          .findOrderById(widget.orderId);
+      final o = await ref.read(firestoreServiceProvider).findOrderById(widget.orderId);
       if (!mounted) return;
       setState(() {
         _order = o;
@@ -58,9 +56,7 @@ class _OrderDetailViewState extends ConsumerState<OrderDetailView> {
     setState(() => _generatingPdf = true);
     try {
       final pdfBytes = await PdfGenerator.generateReceipt(o);
-      
       if (!mounted) return;
-      
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdfBytes,
         name: 'Comprobante_${o.shortId}.pdf',
@@ -564,6 +560,31 @@ class _OrderItemRow extends StatelessWidget {
                 Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.3)),
                 const SizedBox(height: 3),
                 Text('${item.quantity} × ${CurrencyFormatter.format(item.price)}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                
+                // ── NUEVO: PROVEEDOR ──
+                if (item.suggestedProvider != null && item.suggestedProvider!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.storefront_outlined, size: 12, color: AppColors.primaryDark),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Proveedor: ${item.suggestedProvider}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryDark),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                // ── FIN NUEVO ──
+
               ],
             ),
           ),

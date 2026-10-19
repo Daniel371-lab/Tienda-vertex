@@ -34,6 +34,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   final _compareCtrl = TextEditingController();
   final _stockCtrl = TextEditingController(text: '100');
   final _tagsCtrl = TextEditingController();
+  final _providerCtrl = TextEditingController(); // <-- NUEVO
 
   // Listas para guardar las selecciones múltiples
   final Set<String> _selectedCategoryIds = {};
@@ -64,6 +65,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
     _compareCtrl.dispose();
     _stockCtrl.dispose();
     _tagsCtrl.dispose();
+    _providerCtrl.dispose(); // <-- NUEVO
     super.dispose();
   }
 
@@ -86,6 +88,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
           _compareCtrl.text = p.compareAtPrice?.toString() ?? '';
           _stockCtrl.text = p.stock.toString();
           _tagsCtrl.text = p.tags.join(', ');
+          _providerCtrl.text = p.suggestedProvider ?? ''; // <-- NUEVO
           
           _selectedCategoryIds
             ..clear()
@@ -242,7 +245,20 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // ── NUEVO: PROVEEDOR SUGERIDO ──────────────────
+            _label(context, 'Proveedor sugerido (Solo visible en la app)'),
+            TextFormField(
+              controller: _providerCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                hintText: 'Ej: Punto tienda, Proveedor Luque',
+                prefixIcon: Icon(Icons.storefront_outlined, size: 20),
+              ),
+            ),
             const SizedBox(height: 24),
+            // ── FIN NUEVO ──
 
             // ── CATEGORÍAS Y SUBCATEGORÍAS (CHECKBOXES) ──
             _label(context, 'Categorías y Subcategorías'),
@@ -517,6 +533,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         isFeaturedGeneral: _isFeaturedGeneral,
         isFeaturedInCategories: _featuredInCategories.toList(),
         tags: tags,
+        suggestedProvider: _providerCtrl.text.trim().isEmpty ? null : _providerCtrl.text.trim(), // <-- NUEVO
       );
 
       final ok = await ref.read(adminProductsControllerProvider.notifier).saveProduct(product);

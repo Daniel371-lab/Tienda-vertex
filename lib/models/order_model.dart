@@ -26,6 +26,7 @@ class OrderItem {
     required this.price,
     required this.quantity,
     this.imageUrl,
+    this.suggestedProvider, // <-- NUEVO CAMPO
   });
 
   final String productId;
@@ -33,6 +34,7 @@ class OrderItem {
   final int price;
   final int quantity;
   final String? imageUrl;
+  final String? suggestedProvider; // <-- NUEVO CAMPO
 
   int get lineTotal => price * quantity;
 
@@ -42,6 +44,7 @@ class OrderItem {
         price: (map['price'] as num?)?.toInt() ?? 0,
         quantity: (map['quantity'] as num?)?.toInt() ?? 1,
         imageUrl: map['imageUrl'] as String?,
+        suggestedProvider: map['suggestedProvider'] as String?, // <-- NUEVO CAMPO
       );
 
   Map<String, dynamic> toMap() => {
@@ -50,6 +53,7 @@ class OrderItem {
         'price': price,
         'quantity': quantity,
         'imageUrl': imageUrl,
+        'suggestedProvider': suggestedProvider, // <-- NUEVO CAMPO
       };
 }
 
@@ -92,7 +96,7 @@ class Order {
   final String neighborhood;
   final String street1;
   final String? street2;
-  final String locationType; // "Casa" o "Trabajo"
+  final String locationType;
   final String? reference;
   final String? googleMapsLink;
   

@@ -6,9 +6,9 @@ class Product {
     required this.title,
     required this.description,
     required this.price,
-    required this.categoryIds, // <-- AHORA ES UNA LISTA
+    required this.categoryIds,
     required this.images,
-    this.subcategoryIds = const [], // <-- AHORA ES UNA LISTA
+    this.subcategoryIds = const [],
     this.compareAtPrice,
     this.stock = 0,
     this.isFeatured = false,
@@ -16,6 +16,7 @@ class Product {
     this.isFeaturedInCategories = const [],
     this.isActive = true,
     this.tags = const [],
+    this.suggestedProvider, // <-- NUEVO CAMPO
     this.createdAt,
     this.updatedAt,
   });
@@ -34,6 +35,7 @@ class Product {
   final List<String> isFeaturedInCategories;
   final bool isActive;
   final List<String> tags;
+  final String? suggestedProvider; // <-- NUEVO CAMPO
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -62,7 +64,6 @@ class Product {
   }
 
   factory Product.fromMap(String id, Map<String, dynamic> map) {
-    // Retrocompatibilidad: si el producto es viejo y tiene categoryId (String), lo pasamos a Lista.
     List<String> cats = [];
     if (map['categoryIds'] != null) {
       cats = (map['categoryIds'] as List).whereType<String>().toList();
@@ -92,6 +93,7 @@ class Product {
       isFeaturedInCategories: (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ?? const [],
       isActive: map['isActive'] as bool? ?? true,
       tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
+      suggestedProvider: map['suggestedProvider'] as String?, // <-- NUEVO CAMPO
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -111,6 +113,7 @@ class Product {
         'isFeaturedInCategories': isFeaturedInCategories,
         'isActive': isActive,
         'tags': tags,
+        'suggestedProvider': suggestedProvider, // <-- NUEVO CAMPO
         'searchTitle': buildSearchTitle(title),
         'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -130,6 +133,7 @@ class Product {
     List<String>? isFeaturedInCategories,
     bool? isActive,
     List<String>? tags,
+    String? suggestedProvider, // <-- NUEVO CAMPO
   }) =>
       Product(
         id: id,
@@ -146,6 +150,7 @@ class Product {
         isFeaturedInCategories: isFeaturedInCategories ?? this.isFeaturedInCategories,
         isActive: isActive ?? this.isActive,
         tags: tags ?? this.tags,
+        suggestedProvider: suggestedProvider ?? this.suggestedProvider, // <-- NUEVO CAMPO
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
