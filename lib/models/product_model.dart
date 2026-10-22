@@ -16,7 +16,8 @@ class Product {
     this.isFeaturedInCategories = const [],
     this.isActive = true,
     this.tags = const [],
-    this.suggestedProvider, // <-- NUEVO CAMPO
+    this.suggestedProvider,
+    this.targetAudience, // <-- NUEVO CAMPO
     this.createdAt,
     this.updatedAt,
   });
@@ -35,7 +36,8 @@ class Product {
   final List<String> isFeaturedInCategories;
   final bool isActive;
   final List<String> tags;
-  final String? suggestedProvider; // <-- NUEVO CAMPO
+  final String? suggestedProvider;
+  final String? targetAudience; // <-- NUEVO CAMPO (Masculino, Femenino, Unisex)
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -93,7 +95,8 @@ class Product {
       isFeaturedInCategories: (map['isFeaturedInCategories'] as List?)?.whereType<String>().toList() ?? const [],
       isActive: map['isActive'] as bool? ?? true,
       tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
-      suggestedProvider: map['suggestedProvider'] as String?, // <-- NUEVO CAMPO
+      suggestedProvider: map['suggestedProvider'] as String?,
+      targetAudience: map['targetAudience'] as String?, // <-- NUEVO CAMPO
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -113,7 +116,8 @@ class Product {
         'isFeaturedInCategories': isFeaturedInCategories,
         'isActive': isActive,
         'tags': tags,
-        'suggestedProvider': suggestedProvider, // <-- NUEVO CAMPO
+        'suggestedProvider': suggestedProvider,
+        'targetAudience': targetAudience, // <-- NUEVO CAMPO
         'searchTitle': buildSearchTitle(title),
         'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -133,7 +137,8 @@ class Product {
     List<String>? isFeaturedInCategories,
     bool? isActive,
     List<String>? tags,
-    String? suggestedProvider, // <-- NUEVO CAMPO
+    String? suggestedProvider,
+    String? targetAudience, // <-- NUEVO CAMPO
   }) =>
       Product(
         id: id,
@@ -150,7 +155,8 @@ class Product {
         isFeaturedInCategories: isFeaturedInCategories ?? this.isFeaturedInCategories,
         isActive: isActive ?? this.isActive,
         tags: tags ?? this.tags,
-        suggestedProvider: suggestedProvider ?? this.suggestedProvider, // <-- NUEVO CAMPO
+        suggestedProvider: suggestedProvider ?? this.suggestedProvider,
+        targetAudience: targetAudience ?? this.targetAudience, // <-- NUEVO CAMPO
         createdAt: createdAt,
         updatedAt: updatedAt,
       );

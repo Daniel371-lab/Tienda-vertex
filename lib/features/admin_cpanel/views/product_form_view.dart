@@ -34,9 +34,8 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
   final _compareCtrl = TextEditingController();
   final _stockCtrl = TextEditingController(text: '100');
   final _tagsCtrl = TextEditingController();
-  final _providerCtrl = TextEditingController(); // <-- NUEVO
+  final _providerCtrl = TextEditingController();
 
-  // Listas para guardar las selecciones múltiples
   final Set<String> _selectedCategoryIds = {};
   final Set<String> _selectedSubcategoryIds = {};
   final Set<String> _featuredInCategories = {};
@@ -65,7 +64,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
     _compareCtrl.dispose();
     _stockCtrl.dispose();
     _tagsCtrl.dispose();
-    _providerCtrl.dispose(); // <-- NUEVO
+    _providerCtrl.dispose();
     super.dispose();
   }
 
@@ -88,7 +87,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
           _compareCtrl.text = p.compareAtPrice?.toString() ?? '';
           _stockCtrl.text = p.stock.toString();
           _tagsCtrl.text = p.tags.join(', ');
-          _providerCtrl.text = p.suggestedProvider ?? ''; // <-- NUEVO
+          _providerCtrl.text = p.suggestedProvider ?? '';
           
           _selectedCategoryIds
             ..clear()
@@ -140,13 +139,11 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Imágenes ───────────────────────────────────
             _label(context, 'Imágenes'),
             const SizedBox(height: 10),
             _buildImagesRow(),
             const SizedBox(height: 20),
 
-            // ── Título ─────────────────────────────────────
             _label(context, 'Título'),
             TextFormField(
               controller: _titleCtrl,
@@ -158,7 +155,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
             ),
             const SizedBox(height: 16),
 
-            // ── Descripción ────────────────────────────────
             _label(context, 'Descripción'),
             TextFormField(
               controller: _descCtrl,
@@ -169,7 +165,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
             ),
             const SizedBox(height: 16),
 
-            // ── Precios ────────────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -210,7 +205,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
             ),
             const SizedBox(height: 16),
 
-            // ── Stock + Tags ───────────────────────────────
             Row(
               children: [
                 SizedBox(
@@ -247,7 +241,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
             ),
             const SizedBox(height: 16),
 
-            // ── NUEVO: PROVEEDOR SUGERIDO ──────────────────
             _label(context, 'Proveedor sugerido (Solo visible en la app)'),
             TextFormField(
               controller: _providerCtrl,
@@ -258,9 +251,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ),
             ),
             const SizedBox(height: 24),
-            // ── FIN NUEVO ──
 
-            // ── CATEGORÍAS Y SUBCATEGORÍAS (CHECKBOXES) ──
             _label(context, 'Categorías y Subcategorías'),
             Container(
               decoration: BoxDecoration(
@@ -280,7 +271,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                             _selectedCategoryIds.add(cat.id);
                           } else {
                             _selectedCategoryIds.remove(cat.id);
-                            // Si desmarca la categoría, desmarcamos sus subcategorías
                             for (final sub in cat.subcategories) {
                               _selectedSubcategoryIds.remove(sub.id);
                               _featuredInCategories.remove(sub.slug);
@@ -293,7 +283,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
                       controlAffinity: ListTileControlAffinity.leading,
                       dense: true,
                     ),
-                    // Si la categoría está seleccionada, mostramos sus subcategorías
                     if (_selectedCategoryIds.contains(cat.id))
                       Padding(
                         padding: const EdgeInsets.only(left: 32, bottom: 8),
@@ -327,7 +316,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
             ),
             const SizedBox(height: 24),
 
-            // ── Toggles ────────────────────────────────────
             _label(context, 'Visibilidad y Destacados'),
             Container(
               decoration: BoxDecoration(
@@ -354,7 +342,6 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
               ),
             ),
 
-            // ── Destacar en tiendas específicas ──────────
             if (_selectedCategoryIds.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
@@ -533,7 +520,7 @@ class _ProductFormViewState extends ConsumerState<ProductFormView> {
         isFeaturedGeneral: _isFeaturedGeneral,
         isFeaturedInCategories: _featuredInCategories.toList(),
         tags: tags,
-        suggestedProvider: _providerCtrl.text.trim().isEmpty ? null : _providerCtrl.text.trim(), // <-- NUEVO
+        suggestedProvider: _providerCtrl.text.trim().isEmpty ? null : _providerCtrl.text.trim(),
       );
 
       final ok = await ref.read(adminProductsControllerProvider.notifier).saveProduct(product);

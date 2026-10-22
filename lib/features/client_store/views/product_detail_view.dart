@@ -10,10 +10,12 @@ import '../../../core/utils/cloudinary_helper.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/badge_chip.dart';
 import '../../../core/widgets/shimmer_loading.dart';
+import '../../../models/category_model.dart';
 import '../../../models/product_model.dart';
 import '../../../services/firebase/firebase_providers.dart';
 import '../../checkout/views/checkout_view.dart';
 import '../controllers/cart_controller.dart';
+import '../controllers/store_controller.dart';
 
 final _productDetailProvider =
     FutureProvider.family<Product?, String>((ref, id) async {
@@ -92,6 +94,24 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
     );
   }
 
+  // ── NUEVO: Buscador de público basado en subcategoría ──
+  String? _getAudienceLabel(Product product, List<Category> categories) {
+    if (product.subcategoryIds.isEmpty) return null;
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategories) {
+        if (product.subcategoryIds.contains(sub.id)) {
+          final name = sub.name.toLowerCase();
+          if (name.contains('masculin')) return 'Masculino';
+          if (name.contains('femenin')) return 'Femenino';
+          if (name.contains('unisex')) return 'Unisex';
+        }
+      }
+    }
+    return null;
+  }
+  // ─────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final asyncProduct = ref.watch(_productDetailProvider(widget.productId));
@@ -123,6 +143,10 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
   }
 
   Widget _buildContent(Product product, bool isWide) {
+    // Leemos las categorías para saber el nombre de la subcategoría
+    final categories = ref.watch(storeControllerProvider).categories;
+    final audience = _getAudienceLabel(product, categories);
+
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -202,22 +226,31 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (product.stock > 0)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: BadgeChip(
-                    label: 'DISPONIBLE',
-                    color: AppColors.success,
-                  ),
-                )
-              else
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: BadgeChip(
-                    label: 'SIN STOCK',
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+              Row(
+                children: [
+                  if (product.stock > 0)
+                    const BadgeChip(
+                      label: 'DISPONIBLE',
+                      color: AppColors.success,
+                    )
+                  else
+                    const BadgeChip(
+                      label: 'SIN STOCK',
+                      color: AppColors.textSecondary,
+                    ),
+                  
+                  // ── ETIQUETA AZUL (Basada en subcategoría) ──
+                  if (audience != null) ...[
+                    const SizedBox(width: 8),
+                    BadgeChip(
+                      label: audience.toUpperCase(),
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
+
               Text(
                 product.title,
                 style: Theme.of(context).textTheme.displaySmall,
@@ -340,8 +373,6 @@ class _ProductDetailViewState extends ConsumerState<ProductDetailView> {
             child: Row(
               children: [
                 IconButton(
-                  // FIX: Como ahora entramos con push(), el pop() siempre funciona.
-                  // El else es solo por si el cliente recargó la página (F5) y perdió el historial.
                   onPressed: () {
                     if (context.canPop()) {
                       context.pop();

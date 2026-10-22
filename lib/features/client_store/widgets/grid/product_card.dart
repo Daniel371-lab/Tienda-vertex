@@ -1,13 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/cloudinary_helper.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/badge_chip.dart';
+import '../../../../models/category_model.dart';
 import '../../../../models/product_model.dart';
+import '../controllers/store_controller.dart';
 
-class ProductCard extends StatefulWidget {
+class ProductCard extends ConsumerStatefulWidget {
   const ProductCard({
     super.key,
     required this.product,
@@ -20,15 +23,36 @@ class ProductCard extends StatefulWidget {
   final VoidCallback onAddToCart;
 
   @override
-  State<ProductCard> createState() => _ProductCardState();
+  ConsumerState<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> {
+class _ProductCardState extends ConsumerState<ProductCard> {
   bool _hovering = false;
+
+  // ── NUEVO: Buscador de público basado en subcategoría ──
+  String? _getAudienceLabel(List<Category> categories) {
+    final p = widget.product;
+    if (p.subcategoryIds.isEmpty) return null;
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategories) {
+        if (p.subcategoryIds.contains(sub.id)) {
+          final name = sub.name.toLowerCase();
+          if (name.contains('masculin')) return 'Masculino';
+          if (name.contains('femenin')) return 'Femenino';
+          if (name.contains('unisex')) return 'Unisex';
+        }
+      }
+    }
+    return null;
+  }
+  // ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
+    final categories = ref.watch(storeControllerProvider).categories;
+    final audience = _getAudienceLabel(categories);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -54,7 +78,6 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Imagen más panorámica (1.1) ───────────────
                 AspectRatio(
                   aspectRatio: 1.1,
                   child: Stack(
@@ -98,6 +121,29 @@ class _ProductCardState extends State<ProductCard> {
                             color: AppColors.danger,
                           ),
                         ),
+                      
+                      // ── ETIQUETA AZUL (Basada en subcategoría) ──
+                      if (audience != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              audience,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+
                       if (p.stock <= 0)
                         Positioned.fill(
                           child: Container(
@@ -113,13 +159,11 @@ class _ProductCardState extends State<ProductCard> {
                   ),
                 ),
 
-                // ── Info ──────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título (máx 2 líneas)
                       SizedBox(
                         height: 34,
                         child: Text(
@@ -139,12 +183,10 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                       const SizedBox(height: 8),
 
-                      // Precios
                       if (p.hasDiscount)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Precio anterior (chico, tachado)
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
@@ -160,7 +202,6 @@ class _ProductCardState extends State<ProductCard> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            // Precio actual (grande)
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,

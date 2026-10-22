@@ -225,7 +225,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                                 textInputAction: TextInputAction.search,
                                 onSubmitted: _executeSearch,
                                 decoration: InputDecoration(
-                                  hintText: 'Escribe y toca Enter para buscar...',
+                                  hintText: 'Enter para buscar',
                                   prefixIcon: const Icon(Icons.search_rounded, size: 20),
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.close_rounded, size: 18),
