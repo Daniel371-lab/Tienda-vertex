@@ -8,7 +8,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/badge_chip.dart';
 import '../../../../models/category_model.dart';
 import '../../../../models/product_model.dart';
-import '../controllers/store_controller.dart';
+import '../../controllers/store_controller.dart'; // <-- RUTA CORREGIDA AQUÍ
 
 class ProductCard extends ConsumerStatefulWidget {
   const ProductCard({
@@ -29,7 +29,6 @@ class ProductCard extends ConsumerStatefulWidget {
 class _ProductCardState extends ConsumerState<ProductCard> {
   bool _hovering = false;
 
-  // ── NUEVO: Buscador de público basado en subcategoría ──
   String? _getAudienceLabel(List<Category> categories) {
     final p = widget.product;
     if (p.subcategoryIds.isEmpty) return null;
@@ -46,7 +45,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
     return null;
   }
-  // ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +110,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                 ),
                         ),
                       ),
+                      
+                      // Descuento a la izquierda
                       if (p.hasDiscount)
                         Positioned(
                           top: 8,
@@ -122,23 +122,27 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                           ),
                         ),
                       
-                      // ── ETIQUETA AZUL (Basada en subcategoría) ──
+                      // Etiqueta azul centrada arriba de la foto
                       if (audience != null)
                         Positioned(
                           top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              audience,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                audience.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
                           ),
