@@ -8,7 +8,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/badge_chip.dart';
 import '../../../../models/category_model.dart';
 import '../../../../models/product_model.dart';
-import '../../controllers/store_controller.dart'; // <-- RUTA CORREGIDA AQUÍ
+import '../../controllers/store_controller.dart';
 
 class ProductCard extends ConsumerStatefulWidget {
   const ProductCard({
@@ -122,27 +122,24 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                           ),
                         ),
                       
-                      // Etiqueta azul centrada arriba de la foto
+                      // Etiqueta azul chiquita arriba a la derecha
                       if (audience != null)
                         Positioned(
                           top: 8,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                audience.toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              audience.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 8, // Letra bien chiquita
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ),
