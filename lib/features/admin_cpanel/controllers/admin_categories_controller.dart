@@ -134,7 +134,7 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
       final db = _ref.read(firestoreInstanceProvider);
       final snap = await db
           .collection('products')
-          .where('categoryId', isEqualTo: categoryId)
+          .where('categoryIds', arrayContains: categoryId) // <-- FIX: arrayContains
           .count()
           .get();
       return snap.count ?? 0;
@@ -153,16 +153,24 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
 
       final productsSnap = await db
           .collection('products')
-          .where('categoryId', isEqualTo: category.id)
+          .where('categoryIds', arrayContains: category.id) // <-- FIX: arrayContains
           .get();
 
       if (productsSnap.docs.isNotEmpty) {
         final batch = db.batch();
         for (final doc in productsSnap.docs) {
           if (reassignToCategoryId != null) {
+            // Como ahora es una lista, tenemos que leerla, sacar la categoría vieja y meter la nueva
+            final data = doc.data();
+            final currentCats = List<String>.from(data['categoryIds'] ?? []);
+            currentCats.remove(category.id);
+            if (!currentCats.contains(reassignToCategoryId)) {
+              currentCats.add(reassignToCategoryId);
+            }
+            
             batch.update(doc.reference, {
-              'categoryId': reassignToCategoryId,
-              'subcategoryId': null,
+              'categoryIds': currentCats,
+              'subcategoryIds': [], // Reseteamos subcategorías porque pertenecían a la categoría borrada
               'updatedAt': FieldValue.serverTimestamp(),
             });
           } else if (archiveProducts) {

@@ -85,7 +85,16 @@ class _CategoryManagerViewState
       ),
     );
 
-    final productCount = await ctrl.countProductsInCategory(c.id);
+    int productCount = 0;
+    try {
+      productCount = await ctrl.countProductsInCategory(c.id);
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Cerramos el loading
+        _snack('Error al verificar productos: $e');
+      }
+      return;
+    }
 
     if (!mounted) return;
     Navigator.of(context).pop(); // Cerrar loading.
@@ -94,18 +103,18 @@ class _CategoryManagerViewState
       // Confirmación simple.
       final ok = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: Text('Eliminar "${c.name}"'),
           content: const Text(
             'Esta categoría no tiene productos. ¿Confirmás eliminarla?',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text(
                 'Eliminar',
                 style: TextStyle(color: AppColors.danger),
@@ -116,9 +125,13 @@ class _CategoryManagerViewState
       );
       if (ok != true) return;
 
-      final result = await ctrl.deleteCategory(category: c);
-      if (mounted) {
-        _snack(result ? 'Categoría eliminada' : 'No se pudo eliminar');
+      try {
+        final result = await ctrl.deleteCategory(category: c);
+        if (mounted) {
+          _snack(result ? 'Categoría eliminada' : 'No se pudo eliminar');
+        }
+      } catch (e) {
+        if (mounted) _snack('Error: $e');
       }
       return;
     }
@@ -138,31 +151,35 @@ class _CategoryManagerViewState
 
     if (action == null) return;
 
-    switch (action.type) {
-      case _DeleteActionType.cancel:
-        return;
-      case _DeleteActionType.reassign:
-        final result = await ctrl.deleteCategory(
-          category: c,
-          reassignToCategoryId: action.targetCategoryId,
-        );
-        if (mounted) {
-          _snack(result
-              ? 'Productos reasignados y categoría eliminada'
-              : 'No se pudo eliminar');
-        }
-        break;
-      case _DeleteActionType.archive:
-        final result = await ctrl.deleteCategory(
-          category: c,
-          archiveProducts: true,
-        );
-        if (mounted) {
-          _snack(result
-              ? 'Productos archivados y categoría eliminada'
-              : 'No se pudo eliminar');
-        }
-        break;
+    try {
+      switch (action.type) {
+        case _DeleteActionType.cancel:
+          return;
+        case _DeleteActionType.reassign:
+          final result = await ctrl.deleteCategory(
+            category: c,
+            reassignToCategoryId: action.targetCategoryId,
+          );
+          if (mounted) {
+            _snack(result
+                ? 'Productos reasignados y categoría eliminada'
+                : 'No se pudo eliminar');
+          }
+          break;
+        case _DeleteActionType.archive:
+          final result = await ctrl.deleteCategory(
+            category: c,
+            archiveProducts: true,
+          );
+          if (mounted) {
+            _snack(result
+                ? 'Productos archivados y categoría eliminada'
+                : 'No se pudo eliminar');
+          }
+          break;
+      }
+    } catch (e) {
+      if (mounted) _snack('Error al eliminar: $e');
     }
   }
 

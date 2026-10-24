@@ -213,7 +213,7 @@ class _SubcategoryManagerViewState
   Future<void> _confirmDelete(Category c, Subcategory sub) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog( // <-- CAMBIO ACÁ
         title: Text('Eliminar "${sub.name}"'),
         content: const Text(
           'Los productos con esta subcategoría quedarán sin subcategoría '
@@ -221,11 +221,11 @@ class _SubcategoryManagerViewState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false), // <-- CAMBIO ACÁ
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true), // <-- CAMBIO ACÁ
             child: const Text(
               'Eliminar',
               style: TextStyle(color: AppColors.danger),
@@ -234,21 +234,35 @@ class _SubcategoryManagerViewState
         ],
       ),
     );
+    
     if (ok != true) return;
 
-    final result = await ref
-        .read(adminCategoriesControllerProvider.notifier)
-        .deleteSubcategory(category: c, subcategoryId: sub.id);
+    // ── FIX: try-catch para saber si falla Firestore ──
+    try {
+      final result = await ref
+          .read(adminCategoriesControllerProvider.notifier)
+          .deleteSubcategory(category: c, subcategoryId: sub.id);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              result ? 'Subcategoría eliminada' : 'No se pudo eliminar'),
-          backgroundColor: result ? AppColors.success : AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                result ? 'Subcategoría eliminada' : 'No se pudo eliminar'),
+            backgroundColor: result ? AppColors.success : AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar: $e'),
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }
