@@ -45,9 +45,6 @@ class FirestoreService {
 
   // ── PRODUCTOS ─────────────────────────────────────────────────
 
-  /// [En la clase FirestoreService, reemplazar estas funciones específicas]
-
-  /// Busca productos en Firebase usando el campo searchTitle.
   Future<List<Product>> searchProducts(String query) async {
     if (query.trim().isEmpty) return [];
     final cleanQuery = Product.buildSearchTitle(query.trim());
@@ -81,14 +78,28 @@ class FirestoreService {
     required String categoryId,
     int limit = 10,
   }) async {
+    final slug = _slugOfCategoryCache[categoryId];
+    
+    // FIX: Solo pedimos por categoría y filtramos en memoria para evitar el error de Firestore
     final snap = await _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryIds', arrayContains: categoryId) // <-- CAMBIO AQUÍ
-        .where('isFeaturedInCategories', arrayContains: _slugOfCategoryCache[categoryId])
-        .limit(limit)
+        .where('categoryIds', arrayContains: categoryId)
         .get();
-    return snap.docs.map((d) => Product.fromFirestore(d)).toList();
+        
+    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    
+    final featured = products.where((p) {
+      return slug != null && p.isFeaturedInCategories.contains(slug);
+    }).toList();
+
+    featured.sort((a, b) {
+      final aD = a.createdAt ?? DateTime(1970);
+      final bD = b.createdAt ?? DateTime(1970);
+      return bD.compareTo(aD);
+    });
+
+    return featured.take(limit).toList();
   }
 
   Future<ProductsPage> fetchAllByCategory({
@@ -99,7 +110,7 @@ class FirestoreService {
     Query query = _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryIds', arrayContains: categoryId); // <-- CAMBIO AQUÍ
+        .where('categoryIds', arrayContains: categoryId);
 
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 
@@ -123,21 +134,27 @@ class FirestoreService {
     DocumentSnapshot? startAfter,
     int limit = pageSize,
   }) async {
+    // FIX: Traemos por categoría y filtramos subcategoría en memoria
     Query query = _db
         .collection(ApiConstants.colProducts)
         .where('isActive', isEqualTo: true)
-        .where('categoryIds', arrayContains: categoryId) // <-- CAMBIO AQUÍ
-        .where('subcategoryIds', arrayContains: subcategoryId); // <-- CAMBIO AQUÍ
+        .where('categoryIds', arrayContains: categoryId);
 
     if (startAfter != null) query = query.startAfterDocument(startAfter);
 
     final snap = await query.limit(limit).get();
-    final products = snap.docs.map((d) => Product.fromFirestore(d)).toList();
+    
+    final products = snap.docs
+        .map((d) => Product.fromFirestore(d))
+        .where((p) => subcategoryId.isEmpty || p.subcategoryIds.contains(subcategoryId))
+        .toList();
+
     products.sort((a, b) {
       final aD = a.createdAt ?? DateTime(1970);
       final bD = b.createdAt ?? DateTime(1970);
       return bD.compareTo(aD);
     });
+
     return ProductsPage(
       products: products,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
