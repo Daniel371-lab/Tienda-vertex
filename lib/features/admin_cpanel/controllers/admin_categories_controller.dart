@@ -134,12 +134,13 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
       final db = _ref.read(firestoreInstanceProvider);
       final snap = await db
           .collection('products')
-          .where('categoryIds', arrayContains: categoryId) // <-- FIX: arrayContains
+          .where('categoryIds', arrayContains: categoryId)
           .count()
           .get();
       return snap.count ?? 0;
-    } catch (_) {
-      return 0;
+    } catch (e) {
+      // Si falla por falta de índice, devolvemos -1 para saber que hubo error
+      return -1; 
     }
   }
 
@@ -153,14 +154,13 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
 
       final productsSnap = await db
           .collection('products')
-          .where('categoryIds', arrayContains: category.id) // <-- FIX: arrayContains
+          .where('categoryIds', arrayContains: category.id)
           .get();
 
       if (productsSnap.docs.isNotEmpty) {
         final batch = db.batch();
         for (final doc in productsSnap.docs) {
           if (reassignToCategoryId != null) {
-            // Como ahora es una lista, tenemos que leerla, sacar la categoría vieja y meter la nueva
             final data = doc.data();
             final currentCats = List<String>.from(data['categoryIds'] ?? []);
             currentCats.remove(category.id);
@@ -170,7 +170,7 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
             
             batch.update(doc.reference, {
               'categoryIds': currentCats,
-              'subcategoryIds': [], // Reseteamos subcategorías porque pertenecían a la categoría borrada
+              'subcategoryIds': [], 
               'updatedAt': FieldValue.serverTimestamp(),
             });
           } else if (archiveProducts) {
@@ -270,7 +270,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     required Category category,
     required Subcategory subcategory,
   }) async {
-    // Validar slug único dentro de la categoría (excluyendo la actual).
     final conflict = category.subcategories
         .where((s) => s.id != subcategory.id && s.slug == subcategory.slug)
         .isNotEmpty;
@@ -299,7 +298,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     return updateCategory(category.copyWith(subcategories: subs));
   }
 
-  /// Reordena subcategorías con drag & drop.
   Future<bool> reorderSubcategories({
     required Category category,
     required int oldIndex,
@@ -318,7 +316,6 @@ class AdminCategoriesController extends StateNotifier<AdminCategoriesState> {
     final item = subs.removeAt(oldIndex);
     subs.insert(newIndex, item);
 
-    // Reasignamos orderIndex secuencialmente.
     final reindexed = <Subcategory>[];
     for (var i = 0; i < subs.length; i++) {
       reindexed.add(subs[i].copyWith(orderIndex: i + 1));

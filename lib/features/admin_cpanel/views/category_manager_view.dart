@@ -76,31 +76,18 @@ class _CategoryManagerViewState
   Future<void> _confirmDelete(Category c) async {
     final ctrl = ref.read(adminCategoriesControllerProvider.notifier);
 
-    // Mostrar loading.
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
-    );
+    // 1. Contamos los productos SIN mostrar diálogo de carga.
+    final productCount = await ctrl.countProductsInCategory(c.id);
 
-    int productCount = 0;
-    try {
-      productCount = await ctrl.countProductsInCategory(c.id);
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Cerramos el loading
-        _snack('Error al verificar productos: $e');
-      }
+    if (!mounted) return;
+
+    if (productCount == -1) {
+      _snack('Error al conectar con la base de datos. Intentá de nuevo.');
       return;
     }
 
-    if (!mounted) return;
-    Navigator.of(context).pop(); // Cerrar loading.
-
     if (productCount == 0) {
-      // Confirmación simple.
+      // 2. Confirmación simple.
       final ok = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -136,7 +123,7 @@ class _CategoryManagerViewState
       return;
     }
 
-    // Tiene productos → diálogo con 3 opciones.
+    // 3. Tiene productos → diálogo con 3 opciones.
     final action = await showDialog<_DeleteAction>(
       context: context,
       builder: (_) => _DeleteWithProductsDialog(
@@ -417,7 +404,6 @@ class _DeleteWithProductsDialogState
             ),
             const SizedBox(height: 8),
 
-            // ── Opción: Reasignar ─────────────────────
             if (hasOtherCategories)
               _OptionTile(
                 selected: _selected == _DeleteActionType.reassign,
@@ -449,7 +435,6 @@ class _DeleteWithProductsDialogState
                 ),
               ),
 
-            // ── Opción: Archivar ──────────────────────
             _OptionTile(
               selected: _selected == _DeleteActionType.archive,
               title: 'Archivar productos',
@@ -459,7 +444,6 @@ class _DeleteWithProductsDialogState
                   setState(() => _selected = _DeleteActionType.archive),
             ),
 
-            // ── Opción: Cancelar ─────────────────────
             _OptionTile(
               selected: _selected == _DeleteActionType.cancel,
               title: 'Cancelar',
